@@ -56,7 +56,7 @@ bool operator==(stl_vertex a, stl_vertex b) {
 
 void vertToCout(stl_vertex a)
 {
-  cout<<a.x<<" "<<a.y<<" "<<a.z;
+  //cout<<a.x<<" "<<a.y<<" "<<a.z;
 }
 
 /*
