@@ -7,4 +7,4 @@ how to use tests: ./tests file_to_cut , or just ./tests *.stl to cut every file 
 
 
 Additional info:
-You should encounter problems with kolo.stl and trubka.stl as they are non-manifold meshes.
+You should encounter problems with kolo.stl and trubka.stl as these are non-manifold meshes.
