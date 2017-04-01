@@ -65,7 +65,7 @@ void vertToCout(stl_vertex a)
 void checkDuplicity(vector<stl_vertex> &border)
 {
   //xcout<<"CHECK DUPLICITY"<<endl;
-  for (int i = 0; i < border.size(); i+=2)
+   for (int i = 0; i < border.size()-2; i+=2)
   {
     for (int j = i+2; j < border.size(); j+=2)
     {
@@ -73,10 +73,12 @@ void checkDuplicity(vector<stl_vertex> &border)
       stl_vertex tmp2 = border[j+1];
       stl_vertex tmp3 = border[i];
       stl_vertex tmp4 = border[i+1];
+      //std::cout<<"EDGE:  ";vert_toString(tmp3);std::cout<<"|";vert_toString(tmp4);std::cout<<endl;std::cout<<"Proti: ";vert_toString(tmp1);std::cout<<" ";vert_toString(tmp2);std::cout<<endl;
       if ((tmp1.x==tmp3.x && tmp1.y==tmp3.y &&tmp1.z==tmp3.z && tmp2.x==tmp4.x && tmp2.y==tmp4.y &&  tmp2.z==tmp4.z) || ( tmp2.x==tmp3.x && tmp2.y==tmp3.y &&tmp2.z==tmp3.z && tmp1.x==tmp4.x && tmp1.y==tmp4.y && tmp1.z==tmp4.z ) )
       {
         border.erase(border.begin()+j,border.begin()+(j+2));
-        break;
+        j-=2;
+       // break;
       }
     }
   }
@@ -347,7 +349,6 @@ void Mesh::pushToPolylines(vector<p2t::Point*> &vec,stl_vertex vert)
   {
     vert.y=vert.z;
   }
-
 vec.push_back(new p2t::Point(vert.x,vert.y));
 }
 
@@ -900,10 +901,10 @@ bool Mesh::createBorderPolylines()
   //xcout<<"Vypis polylines: "<<"numOfPolylines je "<< numOfPolylines<<endl;
   for (int k = 0; k < polylines.size(); ++k)
   { 
-  //xcout<<"Polyline cislo: "<<k<<" size je "<<polylines[k].size()<<endl;
+  cout<<"Polyline cislo: "<<k<<" size je "<<polylines[k].size()<<endl;
   for (int i = 0; i < polylines[k].size(); i++)
   {
-    //xcout<<polylines[k][i]->x<<" "<<polylines[k][i]->y<<endl;//" //"<<polylines[k][i+1]->x<<" "<<polylines[k][i+1]->y<<endl;
+    cout<<polylines[k][i]->x<<" "<<polylines[k][i]->y<<endl;//" //"<<polylines[k][i+1]->x<<" "<<polylines[k][i+1]->y<<endl;
   }
   }
   polylines.resize(numOfPolylines+1);
