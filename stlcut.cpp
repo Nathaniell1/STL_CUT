@@ -772,23 +772,24 @@ bool Mesh::createBorderPolylines()
       if(!found) EPS=minEPS*1.005;
       if(EPS > 0.5) // ignoring edges, if it gets to this, there was probably a problem with mesh
       {
-        //xcout<<"IGNORUJU EDGE, numOfPolylines: "<<numOfPolylines+1<<endl;
-        //tmp1=border[border.size()-1];
-        //tmp2=border[border.size()-2];
-        //border.erase(border.end()-1,border.end()+1);
         EPS=1e-24;
         minEPS=999999999;
-        //remainingBorder.insert(remainingBorder.end(),polylines[numOfPolylines].begin(),polylines[numOfPolylines].end());
-        //remainingBorder.push_back(tmp2);
-        numOfPolylines++; // if we didnt found it with 0.5 tolerance.. lets just skip it
+        //
+        //      DAT RETURN FALSE A KONEC? PREDEJDU SEGFAULTU
+        // 
+
+        std::cerr<<"Unable to find a connected edge, mesh might be invalid"<<endl;
+        //
         cont=border.back();
         border.pop_back();
         end=border.back();
         border.pop_back();
+        if(!polylines[numOfPolylines].empty())
+          numOfPolylines++;
         pushToPolylines(polylines[numOfPolylines],end);
         pushToPolylines(polylines[numOfPolylines],cont);
-        //polylines[numOfPolylines].push_back(new p2t::Point(end.x,end.y));
-        //polylines[numOfPolylines].push_back(new p2t::Point(cont.x,cont.y));
+         // if we didnt found it with 0.5 tolerance.. lets just skip it
+
 
 
       }
@@ -855,7 +856,7 @@ bool Mesh::createBorderPolylines()
             //xcout<<"nalezen cont==end"<<endl;
             //xcout<<"cont= "<<cont.x<<" "<<cont.y<<" "<<cont.z<<endl;
             //xcout<<"end= "<<end.x<<" "<<end.y<<" "<<end.z<<endl;
-            polylines[numOfPolylines].pop_back(); // delete last one, we dont want it twice
+            if(!polylines[numOfPolylines].empty()) polylines[numOfPolylines].pop_back(); // delete last one, we dont want it twice
             
             if(border.size()>0)
             {
@@ -901,10 +902,10 @@ bool Mesh::createBorderPolylines()
   //xcout<<"Vypis polylines: "<<"numOfPolylines je "<< numOfPolylines<<endl;
   for (int k = 0; k < polylines.size(); ++k)
   { 
-  cout<<"Polyline cislo: "<<k<<" size je "<<polylines[k].size()<<endl;
+  //cout<<"Polyline cislo: "<<k<<" size je "<<polylines[k].size()<<endl;
   for (int i = 0; i < polylines[k].size(); i++)
   {
-    cout<<polylines[k][i]->x<<" "<<polylines[k][i]->y<<endl;//" //"<<polylines[k][i+1]->x<<" "<<polylines[k][i+1]->y<<endl;
+    //cout<<polylines[k][i]->x<<" "<<polylines[k][i]->y<<endl;//" //"<<polylines[k][i+1]->x<<" "<<polylines[k][i+1]->y<<endl;
   }
   }
   polylines.resize(numOfPolylines+1);
