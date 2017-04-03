@@ -2,3 +2,6 @@
 /cut
 /*.stl
 /__*__
+/.cache
+/.git
+
