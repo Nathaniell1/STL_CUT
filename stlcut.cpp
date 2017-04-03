@@ -1352,7 +1352,7 @@ bool tests()
 
 
 int main(int argc, char **argv) {
-  if ((argc != 2 && argc!=6 && argc!=1) ||argv[1]==string("help")) {
+  if ((argc != 2 || argc!=6 || argc!=1) ||argv[1]==string("help")) {
     cerr << "Usage: " << argv[0] << " file.stl a b c d (plane-optional or 0 0 1 -1 will be used) " << endl<<"or"<<endl<< argv[0]<<" tests"<<endl;
     return 1;
   }
