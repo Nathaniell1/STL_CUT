@@ -1,4 +1,6 @@
-compile with: g++ -std=c++11 -o cut stlcut.cpp ./poly2tri/sweep/*.o ./poly2tri/common/*.o -ladmesh
+compile with ./build.sh
+If you dont have poly2tri, download it and place the folder with it to the STL_CUT folder and name it poly2tri
+then use LOCAL=1 ./build
 
 You need to have admesh installed.
 

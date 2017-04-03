@@ -1,8 +1,7 @@
-#!/bin/bash
+#!/bin/bash -e
 # Testing script
 
-g++ -g -std=c++11 -o cut stlcut.cpp ./poly2tri/sweep/*.o ./poly2tri/common/*.o -ladmesh
-
+./build.sh
 for file in $*
                  do
                 
