@@ -65,5 +65,4 @@ You should encounter problems with kolo.stl and trubka.stl as they are non-manif
 
 If you want to use ADMeshGUI you have to use installation number 2.
 If you cant for some reason, download stlcut and change file meshobject.cpp
-Change line #include <stlcut> to #include <stlcut.h> 
->>>>>>> development
+Change line #include <stlcut> to #include "stlcut.h"
