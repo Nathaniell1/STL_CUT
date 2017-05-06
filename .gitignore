@@ -1,0 +1,7 @@
+/poly2tri
+/cut
+/*.stl
+/__*__
+/.cache
+/.git
+
