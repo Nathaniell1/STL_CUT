@@ -40,7 +40,7 @@ To install stlcut, put the compiled binary and the shared library into your `$PA
 If you intend to build something with stlcut as a library, you'll also need the header file and .so symlink:
 
     sudo cp stlcut.h /usr/local/include
-    sudo ln -s libstlcutso.1 /usr/local/lib/libstlcut.so # or lib64
+    sudo ln -s libstlcut.so.1 /usr/local/lib/libstlcut.so # or lib64
     sudo ldconfig
 
 Running the command line tool:
