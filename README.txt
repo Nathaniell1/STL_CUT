@@ -2,7 +2,7 @@ StlCut uses plane to cut stl file and generates two new stl files.
 The hole made with cut is triangulated.
 Use with 2--manifold models.
 Plane is defined as normal (a,b,c) and distance from origin (d).
-If yoy have problem with cut, try changing distance slightly.
+If you have problem with cut, try slightly changing a distance.
 
 
 StlCut requires g++, admesh and poly2tri installed.
