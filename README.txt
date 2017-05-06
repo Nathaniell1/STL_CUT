@@ -34,13 +34,13 @@ export LD_LIBRARY_PATH=.
 
 To install stlcut, put the compiled binary and the shared library into your `$PATH`:
 
-    sudo cp build/stlcut /usr/local/bin
-    sudo cp build/libstlcut.so.1 /usr/local/lib # or lib64
+    sudo cp build/stlcut /usr/bin
+    sudo cp build/libstlcut.so.1 /usr/lib # or lib64
 
 If you intend to build something with stlcut as a library, you'll also need the header file and .so symlink:
 
-    sudo cp stlcut.h /usr/local/include
-    sudo ln -s libstlcut.so.1 /usr/local/lib/libstlcut.so # or lib64
+    sudo cp stlcut.h /usr/include
+    sudo ln -s libstlcut.so.1 /usr/lib/libstlcut.so # or lib64
     sudo ldconfig
 
 Running the command line tool:
