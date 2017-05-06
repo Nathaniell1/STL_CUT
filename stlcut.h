@@ -8,6 +8,7 @@
 #include <admesh/stl.h>
 #include <poly2tri/poly2tri.h>
 #include <string>
+#include <limits>
 using namespace std;
 using namespace p2t;
 

@@ -3,7 +3,7 @@ using namespace p2t;
 using namespace std;
 
 double EPS=1e-25;
-double minEPS=999999999;
+double minEPS=numeric_limits<double>::max();
 char removedAxis='z';
 
 
@@ -58,72 +58,63 @@ void checkDuplicity(vector<stl_vertex> &border)
 /*
 * Compares vertexes based of removed axis
 */
+  bool setVertComp::operator() (const stl_vertex& lhs, const stl_vertex& rhs) const
+  {
 
-    bool setVertComp::operator() (const stl_vertex& lhs, const stl_vertex& rhs) const
+    if(removedAxis=='z')
     {
-
-      if(removedAxis=='z')
-      {
-        if(lhs.x<rhs.x) return true;
-        else 
-          {
-            if(lhs.x!=rhs.x) return false;
-            if(lhs.y<rhs.y) return true;
-             else 
-             {
-                if(lhs.y!=rhs.y) return false;
-                if(lhs.z<rhs.z) return true;
-             }
-          } 
-        return false;
-      }
-
-      if(removedAxis=='x')
-      {
-        if(lhs.y<rhs.y) return true;
-        else 
-          {
-            if(lhs.y!=rhs.y) return false;
-            if(lhs.z<rhs.z) return true;
-             else 
-             {
-                if(lhs.z!=rhs.z) return false;
-                if(lhs.x<rhs.x) return true;
-             }
-          } 
-        return false;
-      }
-
-      if(removedAxis=='y')
-      {
-        if(lhs.x<rhs.x) return true;
-        else 
-          {
-            if(lhs.x!=rhs.x) return false;
-            if(lhs.z<rhs.z) return true;
-             else 
-             {
-                if(lhs.z!=rhs.z) return false;
-                if(lhs.y<rhs.y) return true;
-             }
-          } 
-        return false;
-      }
-
+      if(lhs.x<rhs.x) return true;
+      else 
+        {
+          if(lhs.x!=rhs.x) return false;
+          if(lhs.y<rhs.y) return true;
+           else 
+           {
+              if(lhs.y!=rhs.y) return false;
+              if(lhs.z<rhs.z) return true;
+           }
+        } 
+      return false;
     }
+
+    if(removedAxis=='x')
+    {
+      if(lhs.y<rhs.y) return true;
+      else 
+        {
+          if(lhs.y!=rhs.y) return false;
+          if(lhs.z<rhs.z) return true;
+           else 
+           {
+              if(lhs.z!=rhs.z) return false;
+              if(lhs.x<rhs.x) return true;
+           }
+        } 
+      return false;
+    }
+
+    if(removedAxis=='y')
+    {
+      if(lhs.x<rhs.x) return true;
+      else 
+        {
+          if(lhs.x!=rhs.x) return false;
+          if(lhs.z<rhs.z) return true;
+           else 
+           {
+              if(lhs.z!=rhs.z) return false;
+              if(lhs.y<rhs.y) return true;
+           }
+        } 
+      return false;
+    }
+
+  }
 
 
 
 Mesh::~Mesh()
-{
-  for (unsigned  int i = 0; i < polylines.size(); ++i)
-  {
-    for (unsigned  int j = 0; j< polylines[i].size(); ++j)
-    {
-      //delete (p2t::Point*)polylines[i][j];
-    }
-  }
-}
+{}
 
 /*
 *Calculates missing coordinate and then tryes to find it in the border to remove possible inaccuracy
@@ -177,8 +168,6 @@ void Mesh::setMissingCoordinate(const p2t::Point* a,stl_vertex &b)
 
         }
     }
- 
-
   }
 }
 
@@ -246,8 +235,6 @@ bool Mesh::vertexInPolygon(int nvert, const vector<Point* >& vertex,  const doub
 {
   int i, j;
   bool in = false;
-  //xcout<<"Point k otestovani: "<<testx<<" "<<testy<<endl;
-  //xcout<<"Proti pointu      : "<<vertex.at(0)->x<<" "<<vertex.at(0)->y<<endl;
   //vector from point to the right(to infinity) vs edges
   for (i = 0, j = nvert-1; i < nvert; j = i++) {
     if ( ((vertex.at(i)->y > testy) != (vertex.at(j)->y > testy)) &&
@@ -262,7 +249,6 @@ bool Mesh::vertexInPolygon(int nvert, const vector<Point* >& vertex,  const doub
 
 void Mesh::findHoles()
 {
-  //xcout<<"FIND HOLES"<<endl;
   vector<double> polygonArea;
   polygonArea.resize(polylines.size());
   for (unsigned  int i = 0; i < polylines.size(); ++i)
@@ -308,7 +294,6 @@ void Mesh::findHoles()
   }
   polylines=tmpPolylines; 
 
-
   vector<p2t::Point*> tmpPolygon=polylines.back();
   polylines.pop_back();
   pair<vector<p2t::Point*>,int >tmpPair=make_pair(tmpPolygon,-1);
@@ -333,7 +318,7 @@ void Mesh::findHoles()
       in=0;
       out=0;
        
-      //test 3 points and based on majority(just in case) decide if this polygons is inside biggerPolygon
+      //test 3 points and based on majority decide if this polygons is inside biggerPolygon
       for(int j=0;j<3;j++)
       {
         vector<p2t::Point*>  biggerPolygon=polygonsWithHoles[k][pos].first;//.front();
@@ -380,8 +365,6 @@ void Mesh::findHoles()
         polygonsWithHoles.push_back(tmpVecPair);//list2);
     }
   }
-  
-  
   }
 
 
@@ -461,7 +444,7 @@ void Mesh::createFaces(vector<p2t::Triangle*> &triangles)
 bool Mesh::createBorderPolylines()
 {
 
-  if(border.size()==0 /*|| top_facets.size()==0 || bot_facets.size()==0*/) 
+  if(border.size()==0) 
   {
     cerr<<"Nothing to cut"<<endl;
     return false;
@@ -479,7 +462,7 @@ bool Mesh::createBorderPolylines()
     pushToPolylines(polylines[numOfPolylines],end);
     pushToPolylines(polylines[numOfPolylines],cont);
     EPS=1e-24;
-    minEPS=999999999; //dont want to add limits just for this
+    minEPS=numeric_limits<double>::max(); 
     bool found=true;
     stl_vertex tmp1,tmp2;
     while(border.size()!=0)
@@ -489,7 +472,7 @@ bool Mesh::createBorderPolylines()
       if(EPS > 0.5) // ignoring edges, if it gets to this, there was probably a problem with mesh
       {
         EPS=1e-24;
-        minEPS=999999999;
+        minEPS=numeric_limits<double>::max();
         //
         //       RETURN FALSE Could prevent poly2tri sefault 
         // 
@@ -534,8 +517,6 @@ bool Mesh::createBorderPolylines()
             border.erase(border.begin()+(i-1),border.begin()+i+1); // again, different erase with set
 
           }
-
-
           if((cont==end) )//&& border.size()>1)
           {
 
@@ -553,13 +534,13 @@ bool Mesh::createBorderPolylines()
             pushToPolylines(polylines[numOfPolylines],cont);
             }
 
-            minEPS=999999999;
+            minEPS=numeric_limits<double>::max();
             break;
           }
 
           else 
           {
-            minEPS=999999999.0;
+            minEPS=numeric_limits<double>::max();
             EPS=1e-24;
             break;
           }       
@@ -707,7 +688,6 @@ void Mesh::cut(stl_plane plane)
               stl_vertex intersect1=intersection(facet.vertex[s],a);
               stl_vertex intersect2=intersection(facet.vertex[s],b);
               zCoord=intersect1.z;
-               //hotfix to failed floating point operations
               if(intersect1.x==intersect2.x && intersect2.x==facet.vertex[s].x && intersect1.y==intersect2.y && intersect2.y==facet.vertex[s].y && intersect1.z==intersect2.z && intersect2.z==facet.vertex[s].z)
               {
                 bot_facets.push_back(facet);
@@ -774,8 +754,6 @@ void Mesh::cut(stl_plane plane)
            
        }
       }
-
-
   }
 
   for (unsigned int i = 0; i < border.size(); ++i)
@@ -787,7 +765,6 @@ void Mesh::cut(stl_plane plane)
  // returns the position of the vertex related to the plane
   stl_position Mesh::vertex_position(stl_vertex vertex) 
   {
-    
     double result = plane.x*vertex.x + plane.y*vertex.y + plane.z*vertex.z + plane.d;
     if (result > 0) return above;
     if (result < 0) return below;
@@ -884,53 +861,7 @@ void Mesh::export_stl(deque<stl_facet> facets, const char* name)
   stl_close(&stl_out);
 }
 
-bool tests()
-{
-  string names[]={"sphere.stl","trubka2.stl","trubka3.stl","trubka4.stl","trubka5.stl","sphere2.stl","hrana2.stl","boxsphere.stl"};
-  float org_volume;
-
-  stl_file mesh_file;
-  int test_ok=0;
-  int num_of_tests=8;
- 
-  for (int i = 0; i < num_of_tests;i++)
-  {
-     org_volume=0.0;
-     stl_open(&mesh_file, (char*)names[i].c_str());
-     stl_calculate_volume(&mesh_file);
-     org_volume=mesh_file.stats.volume;
-     stl_close(&mesh_file);
-  
-
-    Mesh mesh;
-    mesh.open((char*)names[i].c_str());
-    mesh.cut(stl_plane(1,1,0,0));
-    if(mesh.createBorderPolylines())
-      {
-        mesh.findHoles();
-        mesh.triangulateCut();
-      }
-    mesh.save();
-    mesh.close();
-
-    float volume=0.0;
-    stl_open(&mesh_file, (char*)"Cut_Mesh_1.stl");
-    stl_calculate_volume(&mesh_file);
-    volume+=mesh_file.stats.volume;
-    stl_close(&mesh_file);
-    stl_open(&mesh_file, (char*)"Cut_Mesh_2.stl");
-    stl_calculate_volume(&mesh_file);
-    volume+=mesh_file.stats.volume;
-    stl_close(&mesh_file);
-    if(abs(org_volume-volume) < abs(org_volume/1000.0)) {cerr<<"Test OBJEMU uspesny"<<endl;test_ok++;};
-  }
-  cerr<<"Testu probehlo: "<<num_of_tests<<" z toho uspesne: "<<test_ok<<endl;
- 
-
-  
-  
-}
-
+//used bz ADMeshGUI
 std::array<stl_file*,2> stlCut(stl_file* stlMesh,double a, double b, double c, double d,bool & succes)
 {
 
@@ -940,8 +871,7 @@ std::array<stl_file*,2> stlCut(stl_file* stlMesh,double a, double b, double c, d
 	Mesh mesh;
   mesh.open(*stlMesh);
   mesh.cut(plane); 
-  std::array<stl_file*,2> cutMesh;
-                                
+  std::array<stl_file*,2> cutMesh;                              
   if(mesh.createBorderPolylines())
     {
       mesh.findHoles();
