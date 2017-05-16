@@ -9,10 +9,9 @@ StlCut requires g++, admesh and poly2tri installed.
 
 To install stlcut you can chose between:
 
-<<<<<<< HEAD
 Additional info:
 You should encounter problems with kolo.stl and trubka.stl as these are non-manifold meshes.
-=======
+
 -------------------------------
 1.
 
