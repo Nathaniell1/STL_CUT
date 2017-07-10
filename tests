@@ -1,7 +1,11 @@
 #!/bin/bash -e
 # Testing script
 
+<<<<<<< Updated upstream
 ./build.sh
+=======
+LOCAL=1 ./build.sh
+>>>>>>> Stashed changes
 for file in $*
                  do
                 
@@ -18,7 +22,11 @@ for i in `seq 1 10`;
 			d=0.${d:1:2}${d:4:3}
 			
 			echo $a $b $c $d ${file}
+<<<<<<< Updated upstream
              ./cut ${file} $a $b $c $d 
+=======
+             ./stlcut ${file} $a $b $c $d 
+>>>>>>> Stashed changes
 			
         done  
 
