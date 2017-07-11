@@ -5,7 +5,7 @@ using namespace std;
 
 jmp_buf buf;
 sigset_t signal_set;
-int num_of_segv=0;
+int numOfSegv=0;
 
 void segv_handler(int s)
 {
@@ -15,8 +15,8 @@ void segv_handler(int s)
 
         case SIGSEGV:
         printf("\nSegmentation fault signal caught! Attempting recovery..");
-        num_of_segv++;
-        longjmp(buf, num_of_segv);
+        numOfSegv++;
+        longjmp(buf, numOfSegv);
         break;
     }
 
@@ -25,7 +25,7 @@ void segv_handler(int s)
 void meshUnitTests()
 {
   Mesh mesh;
-    bool result=mesh.runTests();
+    bool result=mesh.runUnitTests();
     if(result)
       cout<<endl<<"All tests completed without a problem."<<endl;
     else
@@ -66,6 +66,44 @@ int main(int argc, char **argv)
   sigaddset(&signal_set, SIGSEGV); 
   sigprocmask(SIG_UNBLOCK, &signal_set, NULL); //clearnig segfault signal
   signal(SIGSEGV, segv_handler);
+
+  if(numOfSegv > 6)
+  {
+     cerr<<"STLCUT wasnt able to made this cut. Try changing the plane position slightly and make sure that your model is manifold."<<endl;
+    return 1;
+  }
+  else
+  {
+    Mesh mesh;
+    mesh.open(argv[1]);
+    /*  
+    mesh.cut(plane); 
+    mesh.poly2triTest();
+    mesh.save();
+    */
+    if(numOfSegv > 0) 
+    {
+      plane = stl_plane(atof( argv[2]),atof(argv[3]),atof(argv[4]),(-1)*plane.d + error_correction);
+      error_correction=error_correction>0?(-1)*error_correction:error_correction*10;//(-1)*error_correction * 10;
+      cout<<endl<<"Recovered from segmentation fault."<<endl;
+    }
+    mesh.cut(plane); 
+    cout<<"1"<<endl;                         
+    if(mesh.createBorderPolylines())
+      {
+        cout<<"2"<<endl;
+        mesh.findHoles();
+        cout<<"3"<<endl;
+        mesh.triangulateCut();
+        cout<<"4"<<endl;
+        mesh.save();
+      }
+    mesh.close();
+  }
+  return 0;
+}
+
+/*
   if(num_of_segv==0)//!setjmp(buf))
   {
     Mesh mesh;
@@ -75,6 +113,12 @@ int main(int argc, char **argv)
     mesh.poly2triTest();
     mesh.save();
     */
+    /*
+    if(numOfSegv > 0) 
+    {
+      plane = stl_plane(atof( argv[2]),atof(argv[3]),atof(argv[4]),(-1)*plane.d + error_correction);
+      error_correction=error_correction>0?(-1)*error_correction:error_correction*10;//(-1)*error_correction * 10;
+    }
     mesh.cut(plane); 
     cout<<"1"<<endl;                         
     if(mesh.createBorderPolylines())
@@ -97,8 +141,6 @@ int main(int argc, char **argv)
       return 1;
     }
     cout<<endl<<"recovered from segfault"<<endl;
-    int x;
-    cin>>x;
     Mesh mesh2;
     cout<<argv[1]<<endl;
     mesh2.open(argv[1]);
@@ -108,9 +150,9 @@ int main(int argc, char **argv)
     mesh.save();
     */
     //plane.d=-0.5;//(plane.d)-0.099;
-    plane=stl_plane(atof( argv[2]),atof(argv[3]),atof(argv[4]),(-1)*plane.d + error_correction);
-    error_correction=error_correction>0?(-1)*error_correction:error_correction*10;//(-1)*error_correction * 10;
-    cout<<"planeD je: "<<plane.d<<endl;
+
+    //cout<<"planeD je: "<<plane.d<<endl;
+    /*
     mesh2.cut(plane); 
     cout<<"1"<<endl;                         
     if(mesh2.createBorderPolylines())
@@ -125,4 +167,4 @@ int main(int argc, char **argv)
     mesh2.close();
   }
 return 0;
-}
+}*/
