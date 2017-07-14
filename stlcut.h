@@ -43,12 +43,12 @@ public:
   void cut(stl_plane plane);
   stl_position vertex_position(stl_vertex vertex);
   stl_vertex intersection(stl_vertex a, stl_vertex b);
-  void open(char* name);
-  void open( stl_file file);
+  void openStl(char* name);
+  void setStl( stl_file file);
   void export_stl(deque<stl_facet> facets, const char* name);
   stl_file* export_stl2(deque<stl_facet> facets);
   void save();
-  std::array<stl_file*,2> save2();
+  std::array<stl_file*,2> getFinalModels(); //save2
   void close();
   bool createBorderPolylines(bool processOnFac = true);
   void findHoles();
@@ -105,6 +105,7 @@ private:
   vector<tuple<stl_facet,stl_position,stl_vertex,stl_vertex>> facetsOnPlane;
   // this vector contains vectors which contains pair<polygon, -1 for polygon and positive number representing in which polygon is this hole>
   int numOfPolylines=0;
+  bool processed=false;
   //float zCoord;
   
 };

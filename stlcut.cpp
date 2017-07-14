@@ -191,7 +191,6 @@ Mesh::~Mesh()
 //TODO ODKOMENTOVAT
 void Mesh::setMissingCoordinate(const p2t::Point* a,stl_vertex &b)
 {
-  
  // cout<<"x: "<<a->x<<" z: "<<a->y<<"  calculated to:"<<endl;
   if(removedAxis == 'x')
   {
@@ -213,7 +212,6 @@ void Mesh::setMissingCoordinate(const p2t::Point* a,stl_vertex &b)
     b.z= (plane.x*b.x+plane.y*b.y+plane.d) / ((-1.0)* plane.z);
   }
 
-
   set<stl_vertex>::iterator itlow,itup;
   itlow = border2.lower_bound (b);              
   itup = border2.upper_bound (b);   
@@ -231,15 +229,13 @@ void Mesh::setMissingCoordinate(const p2t::Point* a,stl_vertex &b)
     if(dif1<dif2 && itlow!=border2.end() && dif1<0.00001) // find the closest
     {
       b = (*itlow); 
-     
     }
     else 
     {
       if(dif2 <0.00001)     
-        {
-          b = (*itup);
-
-        }
+      {
+        b = (*itup);
+      }
     }
   }
 
@@ -257,11 +253,11 @@ void Mesh::volumeTest()
     stl_file cut_mesh;
     stl_open(&cut_mesh, (char*)"Cut_Mesh_1.stl");
     stl_calculate_volume(&cut_mesh);
-    volume+=mesh_file.stats.volume;
+    volume += mesh_file.stats.volume;
     stl_close(&cut_mesh);
     stl_open(&cut_mesh, (char*)"Cut_Mesh_2.stl");
     stl_calculate_volume(&cut_mesh);
-    volume+=cut_mesh.stats.volume;
+    volume += cut_mesh.stats.volume;
     stl_close(&cut_mesh);
     if(abs(org_volume-volume) > abs(org_volume/1000.0)) 
       cerr<<"Volume test failed, cut might be wrong! "<<endl;
@@ -302,7 +298,6 @@ double Mesh::calculatePolygonArea(vector<p2t::Point*> polygon)
       j = (i+1)%n;
       area += polygon[i]->x * polygon[j]->y;
       area -= polygon[j]->x * polygon[i]->y;
-
     }
     area = abs(area) / 2.0;
     return area;
@@ -325,7 +320,7 @@ bool Mesh::ccw(p2t::Point* a, p2t::Point* b, p2t::Point* c)
 */
 bool Mesh::intersect (p2t::Point* a, p2t::Point* b, p2t::Point* c, p2t::Point* d)
 {
-    return ( ccw(a,c,d) != ccw(b,c,d) && ccw(a,b,c) != ccw(a,b,d) );
+    return ( ccw(a, c, d) != ccw(b, c, d) && ccw(a, b, c) != ccw(a, b, d) );
 }
 
 
@@ -434,10 +429,10 @@ void Mesh::findHoles()
       {
         if(in > out) 
         {
-          if(holeIn! = -1)
-            holeIn   = -1;  //swaping between hole and not a hole
+          if(holeIn != -1)
+            holeIn   = -1;  //swaping between polygon
           else
-            holeIn   = pos;
+            holeIn   = pos; //and hole (pos = in which polygon is this one as a hole)
         }  
         placeFound = true;
         //as long as we didnt get to the end of the vector, continue - basicaly
@@ -454,8 +449,8 @@ void Mesh::findHoles()
         }
       }
     }
-    if(!placeFound)          // if we get here and point wasnt it, condition should be always true
-    {                        // and we found a new polygon
+    if(!placeFound)          // if we get here and point wasnt in
+    {                        // we found a new polygon
       tmpPair = make_pair(tmpPolygon,-1);
       tmpVecPair.erase(tmpVecPair.begin(), tmpVecPair.end());
       tmpVecPair.push_back(tmpPair);
@@ -1244,6 +1239,7 @@ void Mesh::popTo(stl_vertex& a, stl_vertex& b)
 
 bool Mesh::createBorderPolylines(bool processOnFac)
 {
+
   if(processOnFac == true) 
     processOnFacets();
   if(border.size() == 0) 
@@ -1259,6 +1255,14 @@ bool Mesh::createBorderPolylines(bool processOnFac)
       return false;
     }
   }
+  
+  if(processOnFac == true && top_facets.size() != 0 && bot_facets.size() != 0 && processed == true)
+  {
+    this->save();
+      return false;
+  }
+  //
+  //
   checkDuplicity(border);
   stl_vertex cont,end,tmp1,tmp2;
   popTo(cont,end);
@@ -1519,26 +1523,35 @@ void Mesh::processOnFacets()
     }
   }
   cout<<"Border size: "<<border.size()<<endl;
+     cout<<bot_facets.size()<<endl;
   vector<stl_vertex> borderBackUp = border;
-  if(botBorder.size()>0)
+  if(botBorder.size() > 0 || topBorder.size() > 0)
   {
-    border = botBorder;
+  if(bot_facets.size() > 0)//botBorder.size() > 0 )
+  {
+    //border = botBorder;
+    border.insert(border.end(),botBorder.begin(),botBorder.end());
     cout<<"Bot size: "<<border.size()<<endl;
     if(createBorderPolylines(false))
     {
       findHoles();
       triangulateCut(-1);
+      processed=true;
     }
   }
-  if(topBorder.size()>0)
+  if(top_facets.size() > 0)//topBorder.size() > 0)
   {
-    border = topBorder;
+    //border = topBorder;
+    border = borderBackUp;
+    border.insert(border.end(),topBorder.begin(),topBorder.end());
     cout<<"top size: "<<border.size()<<endl;
     if(createBorderPolylines(false))
     {
       findHoles();
       triangulateCut(1);
+      processed=true;
     }
+  }
   }
   border = borderBackUp;
   cout<<"Aorder size pred bufferem: "<<border.size()<<endl;
@@ -1702,8 +1715,6 @@ void Mesh::cut(stl_plane plane)
   stl_position Mesh::vertex_position(stl_vertex vertex) 
   {
     double result = plane.x*vertex.x + plane.y*vertex.y + plane.z*vertex.z + plane.d;
-    //cout<<"x: "<<vertex.x<<" y: "<<vertex.y<<" z: "<<vertex.z<<" res: "<<result<<endl;
-    //cout<<"px: "<<plane.x<<" py: "<<plane.y<<" pz: "<<plane.z<<" pd: "<<plane.d<<endl;
     if (result > 0) return above;
     if (result < 0) return below;
     return on;
@@ -1722,28 +1733,33 @@ void Mesh::cut(stl_plane plane)
         {b = a; a = tmp;}
       else
         if(a.x == b.x && a.y == b.y && a.z < b.z)
-          {b = a; a = tmp;}
+          {
+            b = a; a = tmp;
+          }
     stl_vector ab; // vector from A to B
-    ab.x = b.x-a.x;
-    ab.y = b.y-a.y;
-    ab.z = b.z-a.z;
+    ab.x = b.x - a.x;
+    ab.y = b.y - a.y;
+    ab.z = b.z - a.z;
     double t = - (a.x*plane.x + a.y*plane.y + a.z*plane.z + plane.d) / (ab.x*plane.x + ab.y*plane.y + ab.z*plane.z);
     stl_vertex result;
     result.x = a.x + ab.x*t;
     result.y = a.y + ab.y*t;
     result.z = a.z + ab.z*t;
-    //cout<<result.x<<" "<<result.y<<" "<<result.z<<endl;
     return result;
   }
-void Mesh::open(stl_file file)
+void Mesh::setStl(stl_file file)
 {
   mesh_file = file;
+  if(stl_get_error(&mesh_file) != 0)
+    throw std::runtime_error("Can't open file");
 }
 
-void Mesh::open(char * name)
+void Mesh::openStl(char * name)
 {
   stl_open(&mesh_file, name);
-  stl_exit_on_error(&mesh_file);
+  if(stl_get_error(&mesh_file) != 0)
+    throw std::runtime_error("Can't open file");
+  //stl_exit_on_error(&mesh_file);
 }
 
 stl_file* Mesh::export_stl2(deque<stl_facet> facets) 
@@ -1772,7 +1788,7 @@ void Mesh::save()
   cout<<"Files saved to "<<name<<"_1.stl and "<<name<<"_2.stl"<<endl;
 }
 
-std::array<stl_file*,2> Mesh::save2()
+std::array<stl_file*,2> Mesh::getFinalModels()
 {
   return{export_stl2(top_facets),export_stl2(bot_facets)};//"pokus1.stl");
 
@@ -1836,7 +1852,7 @@ void Mesh::export_stl(deque<stl_facet> facets, const char* name)
   }
   
   //stl_repair(&stl_out,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,0 ,0 ,1 ,0 ,0,0);//fix normal directions
-  stl_repair(&stl_out,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,1 ,1 ,0 ,0,0);//fix normal directions
+  //stl_repair(&stl_out,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,1 ,1 ,0 ,0,0);//fix normal directions
   stl_write_ascii(&stl_out, name, "stlcut");
   stl_clear_error(&stl_out);
   stl_close(&stl_out);
@@ -1847,14 +1863,14 @@ std::array<stl_file*,2> stlCut(stl_file* stlMesh,double a, double b, double c, d
 {
 	stl_plane plane = stl_plane(a,b,c,d);
 	Mesh mesh;
-  mesh.open(*stlMesh);
+  mesh.setStl(*stlMesh);
   mesh.cut(plane); 
   std::array<stl_file*,2> cutMesh;                              
   if(mesh.createBorderPolylines())
     {
       mesh.findHoles();
       mesh.triangulateCut();
-      cutMesh = mesh.save2();
+      cutMesh = mesh.getFinalModels();
       succes = true;
     }
     else succes = false;

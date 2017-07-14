@@ -34,8 +34,8 @@ void meshUnitTests()
 
 int main(int argc, char **argv) 
 {
-  double error_correction=0.00015;
-  if ((argc != 2 && argc!=6 ) ||argv[1]==string("--help")) 
+  double error_correction = 0.00015;
+  if ((argc != 2 && argc != 6 ) ||argv[1]==string(" --help ")) 
   {
     
     //if(argc<2)
@@ -75,7 +75,9 @@ int main(int argc, char **argv)
   else
   {
     Mesh mesh;
-    mesh.open(argv[1]);
+    mesh.openStl(argv[1]);
+    
+
     /*  
     mesh.cut(plane); 
     mesh.poly2triTest();
