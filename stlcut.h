@@ -11,11 +11,11 @@
 #include <string>
 #include <limits>
 #include <tuple>
+#include <signal.h>
+#include <setjmp.h>
 using namespace std;
 using namespace p2t;
-
 enum stl_position { above, on, below };
-
 // makes more sense in this program
 typedef stl_vertex stl_vector;
 struct stl_plane
@@ -38,17 +38,18 @@ struct setVertComp
 class Mesh
 {
 public:
-   //Mesh();
+   Mesh();
   ~Mesh();
-  void cut(stl_plane plane);
+  void divideFacets();
+  bool cut(stl_plane plane, bool segfaultRecovery = true);
   stl_position vertex_position(stl_vertex vertex);
   stl_vertex intersection(stl_vertex a, stl_vertex b);
   void openStl(char* name);
   void setStl( stl_file file);
-  void export_stl(deque<stl_facet> facets, const char* name);
-  stl_file* export_stl2(deque<stl_facet> facets);
+  void exportStl(deque<stl_facet> facets, const char* name);
+  stl_file* exportStl2(deque<stl_facet> facets);
   void save();
-  std::array<stl_file*,2> getFinalModels(); //save2
+  std::array<stl_file*,2> getFinalStls(); //save2
   void close();
   bool createBorderPolylines(bool processOnFac = true);
   void findHoles();
@@ -88,8 +89,13 @@ private:
   void pushAboveBelow(const int aboves,stl_vertex& a,stl_vertex& b,const stl_facet &facet, const stl_position* pos);
   void popTo(stl_vertex& a, stl_vertex& b);
   void poly2triTest();
+  void writeFails();
+  stl_vertex getVertex(double x, double y, double z);
+  //void initSegfHandler();
   //Unit test methods
   bool t_setRemovedAxis();
+  bool t_intersection();
+
 
   // Integration tests
   bool t_minMaxPointsSame();
@@ -106,6 +112,8 @@ private:
   // this vector contains vectors which contains pair<polygon, -1 for polygon and positive number representing in which polygon is this hole>
   int numOfPolylines=0;
   bool processed=false;
+  vector<int> fails;
+
   //float zCoord;
   
 };

@@ -7,6 +7,7 @@ double minEps = numeric_limits<double>::max();
 char removedAxis = 'z';
 
 
+
   stl_plane::stl_plane(float x, float y, float z,float d) 
   {
     this->x = x;
@@ -173,6 +174,8 @@ bool setVertComp::operator() (const p2t::Point lhs, const p2t::Point rhs) const
 
 Mesh::~Mesh()
 {
+  if(stl_get_error(&mesh_file) != 0)
+    close();
   /*
   for (int i = 0; i < polylines.size(); ++i)
   {
@@ -1197,6 +1200,7 @@ void Mesh::createFacet(vector<p2t::Triangle*> &triangles, int side)
    
 }
 
+
 void Mesh::pushToPolylinesFront(vector<p2t::Point*> &vec,stl_vertex vert)
 {
 
@@ -1648,9 +1652,42 @@ void Mesh::pushOns(const int ons,stl_vertex& a,stl_vertex& b,const stl_facet &fa
     }
   }
 }
-void Mesh::cut(stl_plane plane)
+
+
+Mesh::Mesh()
 {
+  //Mesh::numOfSegf = 0;
+  //Mesh::buf; //= NULL;
+  //Mesh::signal_set;// = NULL;
+}
+/*
+void Mesh::initSegfHandler()
+{
+  //numOfSegf = 0;
+  setjmp(buf);
+  sigemptyset(&signal_set);
+  sigaddset(&signal_set, SIGSEGV); 
+  sigprocmask(SIG_UNBLOCK, &signal_set, NULL); //clearnig segfault signal
+  signal(SIGSEGV, segv_handler);
+
+}*/
+bool Mesh::cut(stl_plane plane, bool segfaultRecovery)
+{
+  //double error_correction = 0.00015;
   setPlane(plane);
+  divideFacets();
+  if(createBorderPolylines())
+  {
+    findHoles();
+    triangulateCut();
+    return true;
+  }
+  return false;
+}
+
+
+void Mesh::divideFacets()
+{
   setRemovedAxis();
   size_t aboves = 0;
   size_t belows = 0;
@@ -1712,41 +1749,42 @@ void Mesh::cut(stl_plane plane)
 }
 
  // returns the position of the vertex related to the plane
-  stl_position Mesh::vertex_position(stl_vertex vertex) 
-  {
-    double result = plane.x*vertex.x + plane.y*vertex.y + plane.z*vertex.z + plane.d;
-    if (result > 0) return above;
-    if (result < 0) return below;
-    return on;
-  }
+stl_position Mesh::vertex_position(stl_vertex vertex) 
+{
+  double result = plane.x*vertex.x + plane.y*vertex.y + plane.z*vertex.z + plane.d;
+  if (result > 0) return above;
+  if (result < 0) return below;
+  return on;
+}
 
-  /*
-  *Calculates vertex where edge intersects with plane.
-  */
-  stl_vertex Mesh::intersection(stl_vertex a, stl_vertex b) 
-  {
-    stl_vertex tmp = b;
-    if(a.x < b.x)
+/*
+*Calculates vertex where edge intersects with plane.
+*/
+stl_vertex Mesh::intersection(stl_vertex a, stl_vertex b) 
+{
+  stl_vertex tmp = b;
+  if(a.x < b.x)
+    {b = a; a = tmp;}
+  else
+    if(a.x == b.x && a.y < b.y)
       {b = a; a = tmp;}
     else
-      if(a.x == b.x && a.y < b.y)
-        {b = a; a = tmp;}
-      else
-        if(a.x == b.x && a.y == b.y && a.z < b.z)
-          {
-            b = a; a = tmp;
-          }
-    stl_vector ab; // vector from A to B
-    ab.x = b.x - a.x;
-    ab.y = b.y - a.y;
-    ab.z = b.z - a.z;
-    double t = - (a.x*plane.x + a.y*plane.y + a.z*plane.z + plane.d) / (ab.x*plane.x + ab.y*plane.y + ab.z*plane.z);
-    stl_vertex result;
-    result.x = a.x + ab.x*t;
-    result.y = a.y + ab.y*t;
-    result.z = a.z + ab.z*t;
-    return result;
-  }
+      if(a.x == b.x && a.y == b.y && a.z < b.z)
+        {
+          b = a; a = tmp;
+        }
+  stl_vector ab; // vector from A to B
+  ab.x = b.x - a.x;
+  ab.y = b.y - a.y;
+  ab.z = b.z - a.z;
+  double t = - (a.x*plane.x + a.y*plane.y + a.z*plane.z + plane.d) / (ab.x*plane.x + ab.y*plane.y + ab.z*plane.z);
+  stl_vertex result;
+  result.x = a.x + ab.x*t;
+  result.y = a.y + ab.y*t;
+  result.z = a.z + ab.z*t;
+  return result;
+}
+
 void Mesh::setStl(stl_file file)
 {
   mesh_file = file;
@@ -1762,7 +1800,7 @@ void Mesh::openStl(char * name)
   //stl_exit_on_error(&mesh_file);
 }
 
-stl_file* Mesh::export_stl2(deque<stl_facet> facets) 
+stl_file* Mesh::exportStl2(deque<stl_facet> facets) 
 {
   stl_file* stl_out = new stl_file;
   initializeStl(stl_out,facets.size());
@@ -1783,14 +1821,14 @@ void Mesh::save()
   string name="";
   if(!acquireSaveName(name))
     name="Cut_Mesh";
-  export_stl(top_facets,(name+"_1.stl").c_str());//"Cut_Mesh_1.stl");//"pokus1.stl");
-  export_stl(bot_facets,(name+"_2.stl").c_str());//"Cut_Mesh_2.stl");//"pokus2.stl");
+  exportStl(top_facets,(name+"_1.stl").c_str());//"Cut_Mesh_1.stl");//"pokus1.stl");
+  exportStl(bot_facets,(name+"_2.stl").c_str());//"Cut_Mesh_2.stl");//"pokus2.stl");
   cout<<"Files saved to "<<name<<"_1.stl and "<<name<<"_2.stl"<<endl;
 }
 
-std::array<stl_file*,2> Mesh::getFinalModels()
+std::array<stl_file*,2> Mesh::getFinalStls()
 {
-  return{export_stl2(top_facets),export_stl2(bot_facets)};//"pokus1.stl");
+  return{exportStl2(top_facets),exportStl2(bot_facets)};//"pokus1.stl");
 
 }
 
@@ -1837,8 +1875,11 @@ void Mesh::initializeStl(stl_file * stl,int numOfFacets)
   stl->stats.backwards_edges = 0;
   stl->stats.normals_fixed = 0;
 }
-
-void Mesh::export_stl(deque<stl_facet> facets, const char* name) 
+/*
+*Creates new file and exports STL to it.
+*Throws runtime_error if fail can't be created.
+*/
+void Mesh::exportStl(deque<stl_facet> facets, const char* name) 
 {
   stl_file stl_out;
   initializeStl(&stl_out,facets.size());
@@ -1854,83 +1895,181 @@ void Mesh::export_stl(deque<stl_facet> facets, const char* name)
   //stl_repair(&stl_out,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,0 ,0 ,1 ,0 ,0,0);//fix normal directions
   //stl_repair(&stl_out,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,1 ,1 ,0 ,0,0);//fix normal directions
   stl_write_ascii(&stl_out, name, "stlcut");
+  if(stl_get_error(&stl_out) != 0)
+    throw std::runtime_error("Can't create new file.");
   stl_clear_error(&stl_out);
   stl_close(&stl_out);
 }
 
 //used by ADMeshGUI
-std::array<stl_file*,2> stlCut(stl_file* stlMesh,double a, double b, double c, double d,bool & succes)
+std::array<stl_file*,2> stlCut(stl_file* stlMesh,double a, double b, double c, double d,bool & success)
 {
+  std::array<stl_file*,2> cutMesh; 
 	stl_plane plane = stl_plane(a,b,c,d);
 	Mesh mesh;
   mesh.setStl(*stlMesh);
-  mesh.cut(plane); 
-  std::array<stl_file*,2> cutMesh;                              
+  if(mesh.cut(plane))
+  {
+    cutMesh = mesh.getFinalStls();
+    success = true;
+  }
+  else
+    success = false;
+  /*
+                               
   if(mesh.createBorderPolylines())
     {
       mesh.findHoles();
       mesh.triangulateCut();
-      cutMesh = mesh.getFinalModels();
+      cutMesh = mesh.getFinalStls();
       succes = true;
     }
-    else succes = false;
+    else succes = false;*/
   
   return{cutMesh[0],cutMesh[1]};
-
+}
+stl_vertex Mesh::getVertex(double x, double y, double z)
+{
+  stl_vertex a;
+  a.x = x;
+  a.y = y;
+  a.z = z;
+  return a;
 }
 
+bool Mesh::t_intersection()
+{
+  fails.clear();
+  int num=1;
+  stl_vertex vert, a, b ;
+  cout<<"Testing intersection"<<endl;
+  setPlane(stl_plane(0, 0, 1, 0));
+  setRemovedAxis();
+
+  vert = intersection(getVertex(0, 0, 2), getVertex(0, 0, -2));
+  if(!(vert == getVertex(0, 0, 0)))
+    fails.push_back(num);
+  num++;
+  vert = intersection(getVertex(1, 0, 2), getVertex(1, 0, -2));
+  if(!(vert == getVertex(1, 0, 0)))
+    fails.push_back(num);
+  num++;
+  vert = intersection(getVertex(1, 1, 1), getVertex(-1, -1, -1));
+  if(!(vert == getVertex(0, 0, 0)))
+    fails.push_back(num);
+  num++;
+
+  setPlane(stl_plane(1, 0, 0, 5));
+  setRemovedAxis();
+
+  vert = intersection(getVertex(6, 0, 0), getVertex(1, 0, 0));
+  if(!(vert == getVertex(5, 0, 0)))
+    fails.push_back(num);
+  num++;
+  vert = intersection(getVertex(7, 1, 2), getVertex(-3, 5, -2));
+  if(!(vert == getVertex(5, 1.8, 1.2)))
+    fails.push_back(num);
+  num++;
+
+  setPlane(stl_plane(0, 0.5, 0, -5));
+  setRemovedAxis();
+
+  vert = intersection(getVertex(3, 0, -2.5), getVertex(11, 0.8, 22));
+   //cout << vert.x<<" "<<vert.y<<" "<<vert.z<<endl;
+  if(!(vert == getVertex(-47, -5, -155.625)))
+    fails.push_back(num);
+  num++;
+  vert = intersection(getVertex(7, 1, 2), getVertex(-3, 5, -2));
+  if(!(vert == getVertex(22, -5, 8)))
+    fails.push_back(num);
+  num++;
+
+  setPlane(stl_plane(1, 1, 0.5, -5));
+  setRemovedAxis();
+
+  vert = intersection(getVertex(6, 0, 0), getVertex(-1, 0, 5));
+  if(!(vert == getVertex(-15, 0, 15)))
+    fails.push_back(num);
+  num++;
+  vert = intersection(getVertex(7, 7, 7), getVertex(-7, -7, -7));
+  if(!(vert == getVertex(-3, -3, -3)))
+    fails.push_back(num);
+  num++;
+
+  if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true;
+}
+
+void Mesh::writeFails()
+{
+  cout<<"   Test/s number: ";
+  for (int i = 0; i < fails.size(); ++i)
+  {
+    cout<<fails[i]<<" ";
+  }
+  cout<<"failed."<<endl;
+}
 bool Mesh::t_setRemovedAxis()
 { 
-  vector<int> fails;
+  //vector<int> fails;
+  fails.clear();
   int num=1;
-  bool succes = true;
+  //bool succes = true;
   cout<<"Testing setRemovedAxis"<<endl;
   stl_plane plane = stl_plane(1 , 0 , 0 , 0);
   setPlane(plane);
   setRemovedAxis();
   if(removedAxis != 'x')
-    {succes = false; fails.push_back(num);}
+     fails.push_back(num);
   num++;
   plane = stl_plane(0 , 1 , 0 , 0);
   setPlane(plane);
   setRemovedAxis();
   if(removedAxis != 'y')
-    {succes = false; fails.push_back(num);}
+    fails.push_back(num);
   num++;
   plane = stl_plane(0 , 0 , 1 , 0);
   setPlane(plane);
   setRemovedAxis();
   if(removedAxis != 'z')
-    {succes = false; fails.push_back(num);}
+    fails.push_back(num);
   num++;
   plane = stl_plane(1 , 0.5 , 0 , 0);
   setPlane(plane);
   setRemovedAxis();
   if(removedAxis != 'x')
-    {succes = false; fails.push_back(num);}
+    fails.push_back(num);
   num++;
   plane = stl_plane(1 , 1 , 1 , 0);
   setPlane(plane);
   setRemovedAxis();
   if(removedAxis != 'y')
-    {succes = false; fails.push_back(num);}
+    fails.push_back(num);
   num++;
   plane = stl_plane(1 , 0 , 1 , 0);
   setPlane(plane);
   setRemovedAxis();
   if(removedAxis != 'x')
-    {succes = false; fails.push_back(num);}
+    fails.push_back(num);
 
   if(fails.size()>0)
   {
+    writeFails();
+    /*
     cout<<"   Test/s number: ";
     for (int i = 0; i < fails.size(); ++i)
     {
       cout<<fails[i]<<" ";
     }
-    cout<<"failed."<<endl;
+    cout<<"failed."<<endl;*/
+    return false;
   }
-return succes;
+  else return true;
+//return succes;
 }
 
 
@@ -1938,16 +2077,31 @@ bool Mesh::t_minMaxPointsSame()
 {
   stl_get_size(&mesh_file);
   double maxX=mesh_file.stats.max.x;
-  cout<<maxX;
+  cout<<maxX<<endl;
+  double maxY=mesh_file.stats.max.y;
+  cout<<maxY<<endl;
+  double maxZ=mesh_file.stats.max.z;
+  cout<<maxZ<<endl;
+  double minX=mesh_file.stats.min.x;
+  cout<<minX<<endl;
+  double minY=mesh_file.stats.min.x;
+  cout<<minY<<endl;
+  double minZ=mesh_file.stats.min.z;
+  cout<<minZ<<endl;
 
 }
 
 
 bool Mesh::runUnitTests()
 {
-  bool succes = true;
+  bool success = true;
   if( !(t_setRemovedAxis()) ) 
-    succes = false;
-  return succes; 
+    success = false;
+  if( !(t_intersection()) ) 
+    success = false;
+  //if(!(t_minMaxPointsSame())) neni to unit test
+    //success = false;
+
+  return success; 
 }
   

@@ -2,14 +2,12 @@
 #include <signal.h>
 #include <setjmp.h>
 using namespace std;
-
 jmp_buf buf;
 sigset_t signal_set;
 int numOfSegv=0;
 
 void segv_handler(int s)
 {
-
     switch(s)
     {
 
@@ -19,8 +17,6 @@ void segv_handler(int s)
         longjmp(buf, numOfSegv);
         break;
     }
-
-
 }
 void meshUnitTests()
 {
@@ -67,6 +63,7 @@ int main(int argc, char **argv)
   sigprocmask(SIG_UNBLOCK, &signal_set, NULL); //clearnig segfault signal
   signal(SIGSEGV, segv_handler);
 
+  
   if(numOfSegv > 6)
   {
      cerr<<"STLCUT wasnt able to made this cut. Try changing the plane position slightly and make sure that your model is manifold."<<endl;
@@ -77,7 +74,6 @@ int main(int argc, char **argv)
     Mesh mesh;
     mesh.openStl(argv[1]);
     
-
     /*  
     mesh.cut(plane); 
     mesh.poly2triTest();
@@ -89,6 +85,13 @@ int main(int argc, char **argv)
       error_correction=error_correction>0?(-1)*error_correction:error_correction*10;//(-1)*error_correction * 10;
       cout<<endl<<"Recovered from segmentation fault."<<endl;
     }
+    if (mesh.cut(plane))
+      mesh.save();
+
+    if(mesh.cut(stl_plane(1, 0 ,0 ,0)))
+      mesh.save();
+    //mesh.close(); // asi ne nutne
+    /*
     mesh.cut(plane); 
     cout<<"1"<<endl;                         
     if(mesh.createBorderPolylines())
@@ -99,8 +102,8 @@ int main(int argc, char **argv)
         mesh.triangulateCut();
         cout<<"4"<<endl;
         mesh.save();
-      }
-    mesh.close();
+      }*/
+    //mesh.close();
   }
   return 0;
 }
