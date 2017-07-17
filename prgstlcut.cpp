@@ -21,17 +21,40 @@ void segv_handler(int s)
 void meshUnitTests()
 {
   Mesh mesh;
-    bool result=mesh.runUnitTests();
+    bool result = mesh.runUnitTests();
     if(result)
       cout<<endl<<"All tests completed without a problem."<<endl;
     else
       cout<<endl<<"Some tests failed."<<endl;
 }
 
+void acquireSaveName(string& name)
+{
+  name = "";
+  cout<<"Please enter the new name of meshes ( \"_1.stl\" and \"_2.stl\" will be added)"<<endl;
+  cout<<"Or pres Enter for default name (Cut_Mesh_1/2.stl)"<<endl;
+  while(true)
+  {
+    getline(cin,name);//cin>>name;
+    if(! (find_if(name.begin(), name.end(), 
+        [](char c) { return !(isalnum(c) || (c == ' ') || (c == '_' )); }) == name.end() ) )
+    {
+      cout<<"Plese use only alphanumeric characters, space and underscore"<<endl;
+      name="";
+      continue;
+    }
+    else
+      return;
+  }
+}
+
+
+
 int main(int argc, char **argv) 
 {
   double error_correction = 0.00015;
-  if ((argc != 2 && argc != 6 ) ||argv[1]==string(" --help ")) 
+  string name = "";
+  if ((argc != 2 && argc != 6 ) || argv[1]==string(" --help ")) 
   {
     
     //if(argc<2)
@@ -43,19 +66,21 @@ int main(int argc, char **argv)
   //}
 
   }
-  if(argv[1]==string("tests"))
+  if(argv[1] == string("tests"))
   {
     meshUnitTests();
     //meshIntegrationTests();
     return 0;
   }
 
-  stl_plane plane=stl_plane(0,0,1,-1);
-  if(argc==6)
+  stl_plane plane = stl_plane(0, 0, 1, -1);
+
+  if(argc == 6)
   {
-    plane=stl_plane(atof( argv[2]),atof(argv[3]),atof(argv[4]),atof(argv[5]));
+    plane = stl_plane(atof( argv[2]), atof(argv[3]), atof(argv[4]), atof(argv[5]));
   }
 
+  
   //Setting jump in case of poly2tri segfault
   setjmp(buf);
   sigemptyset(&signal_set);
@@ -63,113 +88,28 @@ int main(int argc, char **argv)
   sigprocmask(SIG_UNBLOCK, &signal_set, NULL); //clearnig segfault signal
   signal(SIGSEGV, segv_handler);
 
-  
   if(numOfSegv > 6)
   {
-     cerr<<"STLCUT wasnt able to made this cut. Try changing the plane position slightly and make sure that your model is manifold."<<endl;
+     cerr<<"STLCUT wasnt able to made this cut. Try changing the plane position slightly and make sure that your model is 2-manifold."<<endl;
     return 1;
   }
   else
   {
     Mesh mesh;
     mesh.openStl(argv[1]);
-    
-    /*  
-    mesh.cut(plane); 
-    mesh.poly2triTest();
-    mesh.save();
-    */
+
     if(numOfSegv > 0) 
     {
       plane = stl_plane(atof( argv[2]),atof(argv[3]),atof(argv[4]),(-1)*plane.d + error_correction);
       error_correction=error_correction>0?(-1)*error_correction:error_correction*10;//(-1)*error_correction * 10;
       cout<<endl<<"Recovered from segmentation fault."<<endl;
     }
-    if (mesh.cut(plane))
-      mesh.save();
 
-    if(mesh.cut(stl_plane(1, 0 ,0 ,0)))
-      mesh.save();
-    //mesh.close(); // asi ne nutne
-    /*
-    mesh.cut(plane); 
-    cout<<"1"<<endl;                         
-    if(mesh.createBorderPolylines())
-      {
-        cout<<"2"<<endl;
-        mesh.findHoles();
-        cout<<"3"<<endl;
-        mesh.triangulateCut();
-        cout<<"4"<<endl;
-        mesh.save();
-      }*/
-    //mesh.close();
+    if (mesh.cut(plane))
+    {
+      acquireSaveName(name);
+      mesh.save(name);
+    }
   }
   return 0;
 }
-
-/*
-  if(num_of_segv==0)//!setjmp(buf))
-  {
-    Mesh mesh;
-    mesh.open(argv[1]);
-    /*  
-    mesh.cut(plane); 
-    mesh.poly2triTest();
-    mesh.save();
-    */
-    /*
-    if(numOfSegv > 0) 
-    {
-      plane = stl_plane(atof( argv[2]),atof(argv[3]),atof(argv[4]),(-1)*plane.d + error_correction);
-      error_correction=error_correction>0?(-1)*error_correction:error_correction*10;//(-1)*error_correction * 10;
-    }
-    mesh.cut(plane); 
-    cout<<"1"<<endl;                         
-    if(mesh.createBorderPolylines())
-      {
-        cout<<"2"<<endl;
-        mesh.findHoles();
-        cout<<"3"<<endl;
-        mesh.triangulateCut();
-        cout<<"4"<<endl;
-        mesh.save();
-      }
-  
-    mesh.close();
-  }
-  else
-  {
-    if(num_of_segv>6)
-    {
-      cerr<<"STLCUT wasnt able to made this cut. Try changing the plane position slightly and make sure that your model is manifold."<<endl;
-      return 1;
-    }
-    cout<<endl<<"recovered from segfault"<<endl;
-    Mesh mesh2;
-    cout<<argv[1]<<endl;
-    mesh2.open(argv[1]);
-    /*  
-    mesh.cut(plane); 
-    mesh.poly2triTest();
-    mesh.save();
-    */
-    //plane.d=-0.5;//(plane.d)-0.099;
-
-    //cout<<"planeD je: "<<plane.d<<endl;
-    /*
-    mesh2.cut(plane); 
-    cout<<"1"<<endl;                         
-    if(mesh2.createBorderPolylines())
-    {
-      cout<<"2"<<endl;
-      mesh2.findHoles();
-      cout<<"3"<<endl;
-      mesh2.triangulateCut();
-      cout<<"4"<<endl;
-      mesh2.save();
-    }
-    mesh2.close();
-  }
-return 0;
-}*/
