@@ -6,6 +6,12 @@ double eps = 1e-25;
 double minEps = numeric_limits<double>::max();
 char removedAxis = 'z';
 
+#ifndef SEGV
+#define SEGV
+jmp_buf buf;
+sigset_t signal_set;
+int numOfSegv=0;
+#endif
 
 
   stl_plane::stl_plane(float x, float y, float z,float d) 
@@ -70,7 +76,7 @@ bool vertexEqual (stl_vertex a, stl_vertex b)
 /*
 *Checks duplicit vertexes in border
 */
-void checkDuplicity(vector<stl_vertex> &border)
+void Mesh::checkDuplicity()
 {
    for (unsigned int i = 0; i < border.size()-2; i+=2)
   {
@@ -81,7 +87,8 @@ void checkDuplicity(vector<stl_vertex> &border)
       stl_vertex tmp3 = border[i];
       stl_vertex tmp4 = border[i+1];
       //TODO FIX with new == operator in mind
-      if ((tmp1.x == tmp3.x && tmp1.y == tmp3.y &&tmp1.z == tmp3.z && tmp2.x == tmp4.x && tmp2.y == tmp4.y &&  tmp2.z == tmp4.z) || ( tmp2.x == tmp3.x && tmp2.y == tmp3.y &&tmp2.z == tmp3.z && tmp1.x == tmp4.x && tmp1.y == tmp4.y && tmp1.z == tmp4.z ) )
+      if( (tmp1 == tmp3 && tmp2 == tmp4 ) || (tmp2 == tmp3 && tmp1 == tmp4) )
+      //if ((tmp1.x == tmp3.x && tmp1.y == tmp3.y &&tmp1.z == tmp3.z && tmp2.x == tmp4.x && tmp2.y == tmp4.y &&  tmp2.z == tmp4.z) || ( tmp2.x == tmp3.x && tmp2.y == tmp3.y &&tmp2.z == tmp3.z && tmp1.x == tmp4.x && tmp1.y == tmp4.y && tmp1.z == tmp4.z ) )
       {
         border.erase(border.begin()+j,border.begin()+(j+2));
         j-=2;
@@ -90,6 +97,29 @@ void checkDuplicity(vector<stl_vertex> &border)
       }
     }
   }
+}
+
+void segv_handler(int s)
+{
+    switch(s)
+    {
+        case SIGSEGV:
+        cerr<<"\nSegmentation fault signal caught! Attempting recovery.."<<endl<<endl;
+        numOfSegv++;
+        longjmp(buf, numOfSegv);
+        break;
+    }
+}
+/*
+*Function to make segfault recovery possible.
+*Setting function to call in case on segfault and unmasking segfault signal.
+*/
+void segvInit()
+{
+  sigemptyset(&signal_set);
+  sigaddset(&signal_set, SIGSEGV); 
+  sigprocmask(SIG_UNBLOCK, &signal_set, NULL); //clearnig segfault signal
+  signal(SIGSEGV, segv_handler);
 }
 
 bool setVertComp::operator() (const p2t::Point* lhs, const p2t::Point* rhs) const
@@ -331,7 +361,7 @@ bool Mesh::ccw(p2t::Point* a, p2t::Point* b, p2t::Point* c)
 /*
 * Calculates if two edges intersect
 */
-bool Mesh::intersect (p2t::Point* a, p2t::Point* b, p2t::Point* c, p2t::Point* d)
+bool Mesh::edgesIntersect (p2t::Point* a, p2t::Point* b, p2t::Point* c, p2t::Point* d)
 {
     return ( ccw(a, c, d) != ccw(b, c, d) && ccw(a, b, c) != ccw(a, b, d) );
 }
@@ -922,6 +952,11 @@ createFacets(triangles);
   
 }
 
+/*
+*This method tryes to fix non-simple polygons, but in very basic way
+*Its designed to remove falsely made intersecting edges due to floating points calcuation errors
+*Thats the reason why it alwas removes first point of second edge.. because this points is usualy close to the second points of first edge which causes intersection
+*/
 void Mesh::removeNonsimplePolygonPoints(vector<p2t::Point*> & p)
 {
   bool pointRemoved;
@@ -932,21 +967,32 @@ void Mesh::removeNonsimplePolygonPoints(vector<p2t::Point*> & p)
     {
       for (int j = m+2; j < p.size()-1; j+=1) //I assume that edges which share one point wont intersect - to prevent false intersection results
       {
-        if(intersect(p[m], p[m+1], p[j], p[j+1] ))
+        if(edgesIntersect(p[m], p[m+1], p[j], p[j+1] ))
         {
 
-          cerr<<"CHYBA! POLYGON NENI JEDNODUCHY"<<endl;
-          cerr<<"m= "<<m<<" j= "<<j<<endl;
-          cerr.precision(numeric_limits<double>::max_digits10);
-          cerr<<p[m]->x<<" "<<p[m]->y<<", "<<p[m+1]->x<<" "<<p[m+1]->y<<" vs "<<p[j]->x<<" "<<p[j]->y<<" , "<<p[j+1]->x<<" "<<p[j+1]->y<<endl;
+          //cerr<<"CHYBA! POLYGON NENI JEDNODUCHY"<<endl;
+          //cerr<<"m= "<<m<<" j= "<<j<<endl;
+          //cerr.precision(numeric_limits<double>::max_digits10);
+          //cerr<<p[m]->x<<" "<<p[m]->y<<", "<<p[m+1]->x<<" "<<p[m+1]->y<<" vs "<<p[j]->x<<" "<<p[j]->y<<" , "<<p[j+1]->x<<" "<<p[j+1]->y<<endl;
           p.erase(p.begin()+j,p.begin()+j+1);
+          j--;
           pointRemoved = true;
           continue;
           //return;
         }
       }
     }
-  
+
+    for (int k = 1; k < p.size()-2; k+=1)
+    {
+      if(edgesIntersect(p[k], p[k+1], p[0], p[ p.size()-1] ))
+      {
+        p.erase(p.begin()+p.size()-1,p.begin()+p.size());
+        k--;
+        pointRemoved=true;
+        continue;
+      }
+    }
   
     /*in p is a polyline (points of polygon), we have to test last edge (from last to first point) as well*/
     /*TOHLE BY NEMELO NIKDY NASTAT, KDYZ JDE JEN O CHYBU V NEPRESNOSTI POCITANI REZU
@@ -962,6 +1008,8 @@ void Mesh::removeNonsimplePolygonPoints(vector<p2t::Point*> & p)
     }
    */
   }while(pointRemoved == true);
+
+
 }
 
 /*
@@ -974,7 +1022,7 @@ a zavolat spojovani pointu
 
 */
 /*
-*Tests every polygon if its non-simple, if not, some points are removed in order to make it simple polygon.
+*Tests every polygon if its non-simple, if not, some points are removed in order to (try to) make it a simple polygon.
 */
 void Mesh::repairIfNonsimplePolygon()
 {
@@ -1141,7 +1189,7 @@ void Mesh::triangulateCut(int topOrBot)
   }
   deletePolygonsWithHoles();  
 }
-
+/*
 bool Mesh::checkForNewPoints(vector<p2t::Triangle*> &triangles, vector<p2t::Point*>& npolygon)
 {
   set<p2t::Point*,setVertComp> vertices;
@@ -1166,7 +1214,8 @@ bool Mesh::checkForNewPoints(vector<p2t::Triangle*> &triangles, vector<p2t::Poin
     return true; // new points found
   return false;
 }
-
+*/
+/*
 void Mesh::fixNonsimplePolygon(vector<p2t::Point*>& npolygon)
 {
   double minDif = numeric_limits<double>::max(); 
@@ -1184,11 +1233,12 @@ void Mesh::fixNonsimplePolygon(vector<p2t::Point*>& npolygon)
   
   if(minDif<0.01)
   {
-    cout << "Mazu bod: x:" << npolygon[index]->x << " y: "<<npolygon[index]->y<<endl;
-    cout << "Pred bod: x:" << npolygon[index-1]->x << " y: "<<npolygon[index-1]->y<<endl;
+    //cout << "Mazu bod: x:" << npolygon[index]->x << " y: "<<npolygon[index]->y<<endl;
+    //cout << "Pred bod: x:" << npolygon[index-1]->x << " y: "<<npolygon[index-1]->y<<endl;
     npolygon.erase(npolygon.begin()+index-1,npolygon.begin()+index);
   }
 }
+*/
 void Mesh::createFacets(vector<p2t::Triangle*> &triangles, int side)
 {
   // for each triangle, create facet
@@ -1519,11 +1569,11 @@ bool Mesh::createBorderPolylines(bool firstCall)//bool processOnFac)
 
   if(border.size() == 0 )
   {
-    cerr<<"Nothing to cut"<<endl;
+    if(!silent)cerr<<"Nothing to cut"<<endl;
     return false;
   }
 
-  checkDuplicity(border);
+  checkDuplicity();//border);
   stl_vertex cont,end,tmp1,tmp2;
   popTo(cont,end);
   polylines.resize(20);
@@ -1670,9 +1720,6 @@ bool Mesh::processOnFacets()
       }
     }
   }
-  cout << border.size()<<endl;
-  cout << botBorder.size()<<endl;
-  cout << topBorder.size()<<endl;
     //kdyz se musi delat rez prez top a bot border
   if( (botBorder.size() != 0 || topBorder.size() != 0))
     return true;
@@ -1797,23 +1844,61 @@ void Mesh::cleanupVariables()
   facetsOnPlane.clear();
 }
 
-bool Mesh::cut(stl_plane plane, bool segfaultRecovery)
+
+
+
+void Mesh::setOptions(bool sil, bool err)
 {
-  cleanupVariables(); // with this its possible to use cut multiple times in row
-  setPlane(plane);
-  divideFacets();
-  if(createBorderPolylines())
-  {
-    findHoles();
-    triangulateCut();
-    //return true;
-  }
-  if(top_facets.size() != 0 && bot_facets.size() != 0)
-    return true;
-  return false;
+  errorRecovery = err; 
+  silent = sil;
 }
 
 
+/*
+* Makes cut through stl_file. Returns true if succesfull otherwise false.
+*@param [in] plane The stl_plane used to cut the mesh.
+*@param [in] segfaultRecovery Flag(optional, default true) whetever should cut try to recoved in case of poly2tri segfault.
+*/
+bool Mesh::cut(stl_plane plane)
+{
+  double error_correction = 0.00015;
+  if(errorRecovery != false)
+  { 
+    setjmp(buf);
+    segvInit();
+  }
+  if(numOfSegv > 6)
+  {
+    if(!silent) cerr<<"STLCUT wasnt able to made this cut. Try changing the plane position slightly and make sure that your model is 2-manifold."<<endl;
+    return false;
+  }
+  else
+  {
+    if(numOfSegv > 0)
+    {
+      plane.d = plane.d + error_correction;
+      error_correction = error_correction > 0?(-1)*error_correction:error_correction*10;
+      if(!silent) cerr<<endl<<"Recovered from segmentation fault."<<endl;
+    }
+
+    cleanupVariables(); // with this its possible to use cut multiple times in row
+    setPlane(plane);
+    divideFacets();
+    if(createBorderPolylines())
+    {
+      findHoles();
+      triangulateCut();
+      //return true;
+    }
+    if(top_facets.size() != 0 && bot_facets.size() != 0)
+      return true;
+    return false;
+  }
+}
+
+/*
+* Divides facets below above and on cutting plane into respective containers.
+*/
 void Mesh::divideFacets()
 {
   setRemovedAxis();
@@ -1845,7 +1930,7 @@ void Mesh::divideFacets()
       continue;
     }
     if(ons == 3)
-    { // last 2 vertexes in this tuple are not important in case of ons == 3
+    { // last 2 vertices in this tuple are not important in case of ons == 3
       facetsOnPlane.push_back(make_tuple(facet,pos[0],facet.vertex[0],facet.vertex[1]));
       continue;
     }
@@ -1875,8 +1960,10 @@ void Mesh::divideFacets()
   }
   //cout<<"BORDER SIZE: "<<border.size()<<endl;
 }
-
- // returns the position of the vertex related to the plane
+/*
+* Returns the position of the vertex related to the plane (on, below, above)
+@param [in] vertex 
+*/
 stl_position Mesh::vertexPosition(stl_vertex vertex) 
 {
   double result = plane.x*vertex.x + plane.y*vertex.y + plane.z*vertex.z + plane.d;
@@ -1886,7 +1973,9 @@ stl_position Mesh::vertexPosition(stl_vertex vertex)
 }
 
 /*
-*Calculates vertex where edge intersects with plane.
+* Calculates intersection between edge and plane. Returns vertex where intersection occurs
+@param [in] a First vertex of the edge
+@param [in] b Second vertex of the edge
 */
 stl_vertex Mesh::intersection(stl_vertex a, stl_vertex b) 
 {
@@ -1913,13 +2002,20 @@ stl_vertex Mesh::intersection(stl_vertex a, stl_vertex b)
   return result;
 }
 
+/*
+* Sets stl file which will be cut. Throws runtime error if file is in error state when provided.
+*@param [in] file Takes stl_file type.
+*/
 void Mesh::setStl(stl_file file)
 {
   mesh_file = file;
   if(stl_get_error(&mesh_file) != 0)
     throw std::runtime_error("Provided Stl file is in error state.");
 }
-
+/*
+* Sets stl file which will be cut. Throws runtime error if file cannot be opened or there is other problem with it.
+*@param [in] file Takes name of stl_file.
+*/
 void Mesh::openStl(char * name)
 {
   stl_open(&mesh_file, name);
@@ -1943,7 +2039,9 @@ stl_file* Mesh::exportStl2(deque<stl_facet> facets)
   stl_repair(stl_out,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,0 ,0 ,1 ,0 ,0,0);//reverse normal directions
   return stl_out;
 }
-
+/*
+*Tests if provided string is valid - Can contins alhanumeric characters, underscore and space.
+*/
 bool Mesh::isStringValid(const std::string &str)
 {
     return find_if(str.begin(), str.end(), 
@@ -1953,7 +2051,7 @@ bool Mesh::isStringValid(const std::string &str)
 /*
 *Saves 2 files. with name_1.stl and name_2.stl. If provided name is invalid (or isnt provded) it uses Cut_Mesh_1.stl and Cut_Mesh_2.stl
 *Throws an runtime_error exception if file cannot be created or saved.
-*@param [in]/ name The name of new saved files (optional). Name can only contain alhanumeric characters, underscore and space.
+*@param [in] name The name of new saved files (optional). Name can only contain alhanumeric characters, underscore and space.
 */
 void Mesh::save(string name)
 {
@@ -1963,7 +2061,7 @@ void Mesh::save(string name)
   }
   exportStl(top_facets,(name + "_1.stl").c_str());//"Cut_Mesh_1.stl");//"pokus1.stl");
   exportStl(bot_facets,(name + "_2.stl").c_str());//"Cut_Mesh_2.stl");//"pokus2.stl");
-  cout<<"Files saved to "<<name<<"_1.stl and "<<name<<"_2.stl"<<endl;
+  if(!silent)cout<<"Files saved to "<<name<<"_1.stl and "<<name<<"_2.stl"<<endl;
   /*
   string name = "";
   if(!acquireSaveName(name))
@@ -1973,6 +2071,9 @@ void Mesh::save(string name)
   cout<<"Files saved to "<<name<<"_1.stl and "<<name<<"_2.stl"<<endl;*/
 }
 
+/*
+* Returns array of 2 stl_file pointers to new cut meshes.
+*/
 std::array<stl_file*,2> Mesh::getFinalStls()
 {
   return{exportStl2(top_facets),exportStl2(bot_facets)};//"pokus1.stl");
@@ -2156,6 +2257,46 @@ bool Mesh::t_intersection()
   else return true;
 }
 
+bool Mesh::t_edgesIntersect ()
+{
+  cout<<"Testing edgesIntersect"<<endl;
+  fails.clear();
+  int num=1;
+  p2t::Point p1,p2,p3,p4;
+  p1 = Point(0,0);
+  p2 = Point(0,2);
+  p3 = Point(-1,-1);
+  p4 = Point(1,1);
+
+  if(edgesIntersect(&p1, &p2, &p3, &p4) != true)
+    fails.push_back(num);
+  num++;
+
+  if(edgesIntersect(&p3, &p2, &p1, &p4) != false)
+    fails.push_back(num);
+  num++;
+
+  p3 = Point(-2,-2);
+  p4 = Point(2,2);
+  if(edgesIntersect(&p1, &p2, &p3, &p3) != false)
+    fails.push_back(num);
+  num++;
+
+  p3 = Point(-2 ,-2 + (1e-25));
+  p4 = Point(2,2 - (1e-25));
+  if(edgesIntersect(&p1, &p2, &p3, &p4) != true)
+    fails.push_back(num);
+  num++;
+
+
+  if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true;
+}
+
 bool Mesh::t_calculatePolygonArea()
 {
   cout<<"Testing calculatePolygonArea"<<endl;
@@ -2278,6 +2419,7 @@ bool Mesh::t_sortPolylines()
       delete polylines[i][j];
     }
   }
+  polylines.clear();
 
   if(fails.size()>0)
   {
@@ -2589,6 +2731,498 @@ bool Mesh::t_getMissingCoordinate()
   else return true; 
 }
 
+bool Mesh::t_checkDuplicity()
+{
+  fails.clear();
+  int num=1;
+  cout<<"Testing checkDuplicity"<<endl;
+  border.push_back(getVertex(1, 0 ,0));
+  border.push_back(getVertex(2, 0 ,0));
+  border.push_back(getVertex(0, 5 ,5));
+  border.push_back(getVertex(1, 1.11 ,0));
+  border.push_back(getVertex(1, 1.11 ,0));
+  border.push_back(getVertex(0, 5 ,5));
+
+  checkDuplicity();
+  if(! (border.size() == 4))
+    fails.push_back(num);
+  num++;
+  border.clear();
+
+  border.push_back(getVertex(1, 0 ,1));
+  border.push_back(getVertex(5, 0 ,2));
+  border.push_back(getVertex(5, 0 ,2));
+  border.push_back(getVertex(1, 0 ,1));
+  border.push_back(getVertex(1, 1.11 ,0));
+  border.push_back(getVertex(2, 1.11 ,3));
+  border.push_back(getVertex(3, 3, 3));
+  border.push_back(getVertex(1, 1 ,1));
+  checkDuplicity();
+  if(! (border.size() == 6))
+    fails.push_back(num);
+  num++;
+  border.clear();
+
+
+  border.push_back(getVertex(1, 0 ,1));
+  border.push_back(getVertex(5, 0 ,2));
+  border.push_back(getVertex(5, 0 ,3));
+  border.push_back(getVertex(1, 0 ,1));
+  border.push_back(getVertex(1, 1.11 ,0));
+  border.push_back(getVertex(2, 1.11 ,3));
+  border.push_back(getVertex(3, 3, 3));
+  border.push_back(getVertex(1, 1 ,1));
+  checkDuplicity();
+  if(! (border.size() == 8))
+    fails.push_back(num);
+  num++;
+  border.clear();
+
+  border.push_back(getVertex(1, 1 ,1));
+  border.push_back(getVertex(2, 2 ,2));
+  border.push_back(getVertex(1, 1 ,1));
+  border.push_back(getVertex(3, 3 ,3));
+  border.push_back(getVertex(0, 0 ,0));
+  border.push_back(getVertex(0, 0 ,0));
+  border.push_back(getVertex(0, 0, 0));
+  border.push_back(getVertex(1, 1 ,1));
+  border.push_back(getVertex(1, 1, 1));
+  border.push_back(getVertex(2, 2 ,2));
+  checkDuplicity();
+  if(! (border.size() == 8))
+    fails.push_back(num);
+  num++;
+  border.clear();
+
+  if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true;
+}
+
+//stl_facet Mesh::createFacet(stl_facet facet, int s, int i, stl_vertex intersect)
+bool Mesh::t_createFacet()
+{
+  fails.clear();
+  int num=1;
+  cout<<"Testing createFacet"<<endl;
+  stl_facet fac,testFac;
+  fac.vertex[0] = getVertex(0 ,0 , 0);
+  fac.vertex[1] = getVertex(1 ,0, -1);
+  fac.vertex[2] = getVertex(2.2, 0 ,10);
+  testFac=createFacet(fac,0,1,getVertex(2.2, 0, 10));
+
+  if(!(testFac.vertex[0] == fac.vertex[0] && testFac.vertex[1] == fac.vertex[1] && testFac.vertex[2] == fac.vertex[2]) )
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,0,2,getVertex(2.2, 0, 10));
+  if(!(testFac.vertex[0] == fac.vertex[0] && testFac.vertex[1] == fac.vertex[2] && testFac.vertex[2] == getVertex(2.2, 0, 10)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,1,1,getVertex(2.2, 0, 10));
+  if(!(testFac.vertex[0] == fac.vertex[1] && testFac.vertex[1] == fac.vertex[2] && testFac.vertex[2] == getVertex(2.2, 0, 10)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,1,2,getVertex(2.2, 0, 10));
+  if(!(testFac.vertex[0] == fac.vertex[1] && testFac.vertex[1] == fac.vertex[0] && testFac.vertex[2] == getVertex(2.2, 0, 10)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,2,1,getVertex(2.2, 0, 10));
+  if(!(testFac.vertex[0] == fac.vertex[2] && testFac.vertex[1] == fac.vertex[0] && testFac.vertex[2] == getVertex(2.2, 0, 10)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,2,2,getVertex(2.2, 0, 10));
+  if(!(testFac.vertex[0] == fac.vertex[2] && testFac.vertex[1] == fac.vertex[1] && testFac.vertex[2] == getVertex(2.2, 0, 10)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,0,0,getVertex(2.2, 0, 10),getVertex(1, 2 ,3));
+  if(!(testFac.vertex[0] == fac.vertex[0] && testFac.vertex[1] == getVertex(2.2,0,10) && testFac.vertex[2] == getVertex(1,2,3)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,1,0,getVertex(2.2, 0, 10),getVertex(1, 2 ,3));
+  if(!(testFac.vertex[0] == fac.vertex[1] && testFac.vertex[1] == getVertex(2.2,0,10) && testFac.vertex[2] == getVertex(1,2,3)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,2,0,getVertex(2.2, 0, 10),getVertex(1, 2 ,3));
+  if(!(testFac.vertex[0] == fac.vertex[2] && testFac.vertex[1] == getVertex(2.2,0,10) && testFac.vertex[2] == getVertex(1,2,3)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,0,1,getVertex(2.2, 0, 10),getVertex(1, 2 ,3));
+  if(!(testFac.vertex[0] == getVertex(2.2,0,10) && testFac.vertex[1] == fac.vertex[1] && testFac.vertex[2] == getVertex(1,2,3)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,1,1,getVertex(2.2, 0, 10),getVertex(1, 2 ,3));
+  if(!(testFac.vertex[0] == getVertex(2.2,0,10) && testFac.vertex[1] == fac.vertex[2] && testFac.vertex[2] == getVertex(1,2,3)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,2,1,getVertex(2.2, 0, 10),getVertex(1, 2 ,3));
+  if(!(testFac.vertex[0] == getVertex(2.2,0,10) && testFac.vertex[1] == fac.vertex[0] && testFac.vertex[2] == getVertex(1,2,3)))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,0,2,getVertex(2.2, 0, 10),getVertex(1, 2 ,3));
+  if(!(testFac.vertex[0] == getVertex(1,2,3) && testFac.vertex[1] == fac.vertex[1] && testFac.vertex[2] == fac.vertex[2]))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,1,2,getVertex(2.2, 0, 10),getVertex(1, 2 ,3));
+  if(!(testFac.vertex[0] == getVertex(1,2,3) && testFac.vertex[1] == fac.vertex[2] && testFac.vertex[2] == fac.vertex[0]))
+    fails.push_back(num);
+  num++;
+
+  testFac=createFacet(fac,2,2,getVertex(2.2, 0, 10),getVertex(1, 2 ,3));
+  if(!(testFac.vertex[0] == getVertex(1,2,3) && testFac.vertex[1] == fac.vertex[0] && testFac.vertex[2] == fac.vertex[1]))
+    fails.push_back(num);
+  num++;
+
+
+  if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true;
+}
+
+
+bool Mesh::t_setVertex()
+{
+  fails.clear();
+  int num=1;
+  cout<<"Testing setVertex"<<endl;
+  stl_vertex a, b;
+  stl_facet f;
+  a = getVertex( 1,    2,    3);
+  b = getVertex(-1.1, -2.2, -3.3);
+  f.vertex[0] = getVertex(0  , -3.1,   99.9);
+  f.vertex[1] = getVertex(1  ,  5.2,  -1.5);
+  f.vertex[2] = getVertex(2.2, -11.1 , 10);
+
+  setVertex(a,b,0,f);
+  if(!(a == f.vertex[1] && b == f.vertex[2]))
+    fails.push_back(num);
+  num++;
+
+  setVertex(a,b,1,f);
+  if(!(a == f.vertex[2] && b == f.vertex[0]))
+    fails.push_back(num);
+  num++;
+
+  setVertex(a,b,2,f);
+  if(!(a == f.vertex[0] && b == f.vertex[1]))
+    fails.push_back(num);
+  num++;
+
+
+  if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true;
+}
+
+//removeNonSimplePolygons is designed to handle very small and specific amount of errorrs in polygon, so this test is taking it into account and tests only what
+//this method is designed to handle
+bool Mesh::t_removeNonsimplePolygonPoints()
+{
+  fails.clear();
+  int num=1;
+  cout<<"Testing removeNonsimplePolygonPoints"<<endl;
+  //void Mesh::removeNonsimplePolygonPoints(vector<p2t::Point*> & p)
+  vector<p2t::Point*> p;
+  p.push_back(new p2t::Point(0,0));
+  p.push_back(new p2t::Point(10.1,0));
+  p.push_back(new p2t::Point(12.1,3.3));
+  p.push_back(new p2t::Point(20.123,19.23));
+  p.push_back(new p2t::Point(-5,10));
+  p.push_back(new p2t::Point(-20.2,-15.5));
+
+  removeNonsimplePolygonPoints(p);
+  if(p.size() != 6 )
+    fails.push_back(num);
+  num++;
+
+  p.push_back(new p2t::Point(-21.1,-12.89));
+  removeNonsimplePolygonPoints(p);
+  if(!(p.size() == 6 && p[p.size()-1]->x == -20.2 && p[p.size()-1]->y == -15.5))
+    fails.push_back(num);
+  num++;
+
+  for (int i = 0; i < p.size(); ++i)
+  {
+    delete p[i];
+  }
+  p.clear();
+
+  p.push_back(new p2t::Point( 0, 0));
+  p.push_back(new p2t::Point( 2.2, 1.1 ));
+  p.push_back(new p2t::Point( 2,1 ));
+  p.push_back(new p2t::Point( 0, 5));
+  p.push_back(new p2t::Point(-5, 5));
+  p.push_back(new p2t::Point( -3,-3 ));
+  p.push_back(new p2t::Point( -1,-1 ));
+
+  removeNonsimplePolygonPoints(p);
+  if(!(p.size() == 6 && p[2]->x == 0 && p[2]->y == 5))
+    fails.push_back(num);
+  num++;
+
+  for (int i = 0; i < p.size(); ++i)
+  {
+    delete p[i];
+  }
+
+  if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true;
+}
+
+bool Mesh::t_ccw()
+{ 
+  fails.clear();
+  int num=1;
+  cout<<"Testing ccw"<<endl;
+  p2t::Point p1,p2,p3;
+  p1 = Point(0,0);
+  p2 = Point(0,1);
+  p3 = Point(1,0);
+
+  if(ccw(&p1, &p2, &p3) != false)
+    fails.push_back(num);
+  num++;
+   //return ( (c->y - a->y) * (b->x - a->x) > (b->y - a->y) * (c->x - a->x) );
+  // 0 - 0 * 0 - 0 > 1 - 0 * 1-0
+
+  if(ccw(&p1, &p3, &p2) != true)
+    fails.push_back(num);
+  num++;
+
+ 
+
+  p1 = Point(-10,-10);
+  p2 = Point(0,-10);
+  p3 = Point(-7.1,-3);
+
+  if(ccw(&p1, &p2, &p3) != true)
+    fails.push_back(num);
+  num++;
+
+  if(ccw(&p1, &p3, &p2) != false)
+    fails.push_back(num);
+  num++;
+
+  if(ccw(&p3, &p2, &p1) != false)
+    fails.push_back(num);
+  num++;
+
+  if(ccw(&p2, &p1, &p3) != false)
+    fails.push_back(num);
+  num++;
+
+  if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true;
+}
+
+
+bool Mesh::t_pushBackToPolylines()
+{
+  fails.clear();
+  int num=1;
+  cout<<"Testing pushBackToPolylines"<<endl;
+  setPlane(stl_plane (0, 0, 1, 0));
+  setRemovedAxis();
+  polylines.resize(1);
+
+  pushBackToPolylines(polylines[0], getVertex(1.1,2.2,3.3));
+  if(!(polylines[0].size() == 1 && polylines[0][0]->x == 1.1f && polylines[0][0]->y ==2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushBackToPolylines(polylines[0], getVertex(1.1,-2.2,3.3));
+  if(!(polylines[0].size() == 2 && polylines[0][1]->x == 1.1f && polylines[0][1]->y ==-2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushBackToPolylines(polylines[0], getVertex(-1.1,2.2,3.3));
+  if(!(polylines[0].size() == 3 && polylines[0][2]->x == -1.1f && polylines[0][2]->y ==2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushBackToPolylines(polylines[0], getVertex(-1.1,2.2,3.3));
+  if(!(polylines[0].size() == 3))
+    fails.push_back(num);
+  num++;
+
+  setPlane(stl_plane (1, 0, 0, 0));
+  setRemovedAxis();
+
+  pushBackToPolylines(polylines[0], getVertex(1.1,2.2,3.3));
+  if(!(polylines[0].size() == 4 && polylines[0][3]->x == 3.3f && polylines[0][0]->y ==2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushBackToPolylines(polylines[0], getVertex(1.1,-2.2,3.3));
+  if(!(polylines[0].size() == 5 && polylines[0][4]->x == 3.3f && polylines[0][1]->y ==-2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushBackToPolylines(polylines[0], getVertex(-1.1,2.2,3.3));
+  if(!(polylines[0].size() == 6 && polylines[0][5]->x == 3.3f && polylines[0][2]->y ==2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushBackToPolylines(polylines[0], getVertex(1.1,2.2,3.3));
+  if(!(polylines[0].size() == 6))
+    fails.push_back(num);
+  num++;
+
+  setPlane(stl_plane (0, 1, 0, 0));
+  setRemovedAxis();
+
+  pushBackToPolylines(polylines[0], getVertex(1.1,2.2,3.3));
+  if(!(polylines[0].size() == 7 && polylines[0][6]->x == 1.1f && polylines[0][6]->y ==3.3f))
+    fails.push_back(num);
+  num++;
+
+  pushBackToPolylines(polylines[0], getVertex(1.1,-2.2,-3.3));
+  if(!(polylines[0].size() == 8 && polylines[0][7]->x == 1.1f && polylines[0][7]->y ==-3.3f))
+    fails.push_back(num);
+  num++;
+
+  pushBackToPolylines(polylines[0], getVertex(-1.1,2.2,3.3));
+  if(!(polylines[0].size() == 9 && polylines[0][8]->x == -1.1f && polylines[0][8]->y ==3.3f))
+    fails.push_back(num);
+  num++;
+
+  pushBackToPolylines(polylines[0], getVertex(-1.1,-2.2,3.3));
+  if(!(polylines[0].size() == 9))
+    fails.push_back(num);
+  num++;
+
+  for (int i = 0; i < polylines[0].size(); ++i)
+  {
+    delete polylines[0][i];
+  }
+  polylines.clear();
+
+  if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true; 
+}
+
+bool Mesh::t_pushFrontToPolylines()
+{
+  fails.clear();
+  int num=1;
+  cout<<"Testing pushFrontToPolylines"<<endl;
+  setPlane(stl_plane (0, 0, 1, 0));
+  setRemovedAxis();
+  polylines.resize(1);
+
+  pushFrontToPolylines(polylines[0], getVertex(1.1,2.2,3.3));
+  if(!(polylines[0].size() == 1 && polylines[0][0]->x == 1.1f && polylines[0][0]->y ==2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushFrontToPolylines(polylines[0], getVertex(1.1,-2.2,3.3));
+  if(!(polylines[0].size() == 2 && polylines[0][0]->x == 1.1f && polylines[0][0]->y ==-2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushFrontToPolylines(polylines[0], getVertex(-1.1,2.2,3.3));
+  if(!(polylines[0].size() == 3 && polylines[0][0]->x == -1.1f && polylines[0][0]->y ==2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushFrontToPolylines(polylines[0], getVertex(-1.1,2.2,3.3));
+  if(!(polylines[0].size() == 3))
+    fails.push_back(num);
+  num++;
+
+  setPlane(stl_plane (1, 0, 0, 0));
+  setRemovedAxis();
+
+  pushFrontToPolylines(polylines[0], getVertex(1.1,2.2,3.3));
+  if(!(polylines[0].size() == 4 && polylines[0][0]->x == 3.3f && polylines[0][0]->y ==2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushFrontToPolylines(polylines[0], getVertex(1.1,-2.2,3.3));
+  if(!(polylines[0].size() == 5 && polylines[0][0]->x == 3.3f && polylines[0][0]->y ==-2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushFrontToPolylines(polylines[0], getVertex(-1.1,2.2,3.3));
+  if(!(polylines[0].size() == 6 && polylines[0][0]->x == 3.3f && polylines[0][0]->y ==2.2f))
+    fails.push_back(num);
+  num++;
+
+  pushFrontToPolylines(polylines[0], getVertex(1.1,2.2,3.3));
+  if(!(polylines[0].size() == 6))
+    fails.push_back(num);
+  num++;
+
+  setPlane(stl_plane (0, 1, 0, 0));
+  setRemovedAxis();
+
+  pushFrontToPolylines(polylines[0], getVertex(1.1,2.2,3.3));
+  if(!(polylines[0].size() == 7 && polylines[0][0]->x == 1.1f && polylines[0][0]->y ==3.3f))
+    fails.push_back(num);
+  num++;
+
+  pushFrontToPolylines(polylines[0], getVertex(1.1,-2.2,-3.3));
+  if(!(polylines[0].size() == 8 && polylines[0][0]->x == 1.1f && polylines[0][0]->y ==-3.3f))
+    fails.push_back(num);
+  num++;
+
+  pushFrontToPolylines(polylines[0], getVertex(-1.1,2.2,3.3));
+  if(!(polylines[0].size() == 9 && polylines[0][0]->x == -1.1f && polylines[0][0]->y ==3.3f))
+    fails.push_back(num);
+  num++;
+
+  pushFrontToPolylines(polylines[0], getVertex(-1.1,-2.2,3.3));
+  if(!(polylines[0].size() == 9))
+    fails.push_back(num);
+  num++;
+
+  for (int i = 0; i < polylines[0].size(); ++i)
+  {
+    delete polylines[0][i];
+  }
+  polylines.clear();
+
+  if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true; 
+
+}
 
 bool Mesh::t_setRemovedAxis()
 { 
@@ -2679,6 +3313,24 @@ bool Mesh::runUnitTests()
     success = false;
   if( !(t_getMissingCoordinate()) ) 
     success = false;
+  if( !(t_checkDuplicity()) ) 
+    success = false;
+  if( !(t_createFacet()) ) 
+    success = false;
+  if( !(t_pushBackToPolylines()) ) 
+    success = false;
+  if( !(t_pushFrontToPolylines()) ) 
+    success = false;
+  if( !(t_ccw()) ) 
+    success = false;
+  if( !(t_edgesIntersect()) ) 
+    success = false;
+  if( !(t_removeNonsimplePolygonPoints()) ) 
+    success = false;
+  if( !(t_setVertex()) ) 
+    success = false;
+  
+  
   
   //if(!(t_minMaxPointsSame())) neni to unit test
     //success = false;
