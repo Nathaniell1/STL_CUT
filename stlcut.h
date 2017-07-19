@@ -38,14 +38,11 @@ struct setVertComp
 class Mesh
 {
 public:
-   Mesh();
-  ~Mesh();
-  
+
   bool cut(stl_plane plane);
   void openStl(char* name);
   void setStl( stl_file file);
   void exportStl(deque<stl_facet> facets, const char* name);
-  stl_file* exportStl2(deque<stl_facet> facets);
   void save(string name = "");
   std::array<stl_file*,2> getFinalStls(); //save2
   void close();
@@ -54,6 +51,7 @@ public:
   bool runUnitTests();
   
 private:
+  stl_file* getExportedStl(deque<stl_facet> facets);
   bool createBorderPolylines(bool firstCall = true); 
   void findHoles();
   stl_position vertexPosition(stl_vertex vertex); //test
@@ -74,26 +72,26 @@ private:
   //bool checkForNewPoints(vector<p2t::Triangle*> &triangles, vector<p2t::Point*>& npolygon);
   void repairIfNonsimplePolygon(); // akorad vola removenonsimple v cyklu
   void setRemovedAxis(); //test
-  void setPlane(stl_plane plane);
+  void setPlane(stl_plane plane); // jen prirazeni
   bool ccw(p2t::Point* a, p2t::Point* b, p2t::Point* c); //test
   bool edgesIntersect (p2t::Point* a, p2t::Point* b, p2t::Point* c, p2t::Point* d); // test
   void removeNonsimplePolygonPoints(vector<p2t::Point*> & p); //test
   //bool acquireSaveName(string& name);
   //void checkPoly2triResult();
   void checkPoly2triResult( vector<p2t::Triangle*>& triangles ); //test
-  void initializeStl(stl_file * stl,int numOfFacets);
+  void initializeStl(stl_file * stl,int numOfFacets); //priprazeni
   void setVertex(stl_vertex& a, stl_vertex& b,const int &s,const stl_facet & facet); //test
   bool processOnFacets();
   bool processOnBorder();
   bool haveEqualEdges(tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet1, tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet2);
   void insertTo(stl_vertex x, stl_vertex y, vector<stl_vertex>& a, set<stl_vertex,setVertComp> & b);
   void sortPolylines(); //test
-  bool isStringValid(const string &str);
+  bool isStringValid(const string &str); //true
   //void pushToBuffer(vector<p2t::Point*>& polyline);
   void pushOns(const int ons, stl_vertex& a, stl_vertex& b,const stl_facet &facet, const stl_position* pos);
   void pushAboveBelow(const int aboves,stl_vertex& a,stl_vertex& b,const stl_facet &facet, const stl_position* pos);
   void popTo(stl_vertex& a, stl_vertex& b);
-  void poly2triTest();
+  //void poly2triTest();
   void writeFails();
   void cleanupVariables();
   void deletePolygonsWithHoles();
@@ -110,8 +108,6 @@ private:
   bool t_vertexInPolygon();
   bool t_getMissingCoordinate();
   bool t_checkDuplicity();
-  // Integration tests
-  bool t_minMaxPointsSame();
   bool t_createFacet();
   bool t_pushBackToPolylines();
   bool t_pushFrontToPolylines();
@@ -119,6 +115,10 @@ private:
   bool t_edgesIntersect ();
   bool t_removeNonsimplePolygonPoints();
   bool t_setVertex();
+  bool t_isStringValid();
+
+  // Integration tests
+  bool t_minMaxPointsSame();
 
   stl_file mesh_file;
   stl_plane plane=stl_plane(0,0,0,0);

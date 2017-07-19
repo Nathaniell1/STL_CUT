@@ -202,25 +202,6 @@ bool setVertComp::operator() (const p2t::Point lhs, const p2t::Point rhs) const
 
 
 
-Mesh::~Mesh()
-{
-  if(stl_get_error(&mesh_file) != 0)
-    close();
-  /*
-  cout<<"MAZEZM"<<endl;
-  cout<<"Polylines.size "<<polylines.size()<<endl;
-  for (int i = 0; i < polylines.size(); ++i)
-  {
-    for (int j = 0; j < polylines[i].size(); ++j)
-    {
-      delete polylines[i][j];
-      delete polylines[i][j];
-    }
-  }
-*/
-
-}
-
 /*
 *Calculates missing coordinate and then tryes to find it in the border to remove possible inaccuracy
 */
@@ -500,7 +481,7 @@ void Mesh::findHoles()
     }
   }
 }
-
+/*
 void Mesh::poly2triTest()
 {
   polygonsWithHoles.resize(1);
@@ -945,13 +926,14 @@ polg.push_back(new p2t::Point(0.319098, 0.846101));
 polg.push_back(new p2t::Point(0.319329, 0.844364));
 polg.push_back(new p2t::Point(0.319448, 0.843475));
 */
+/*
 p2t::CDT* tmp = new  p2t::CDT(polg);
 tmp->Triangulate();
 vector<p2t::Triangle*> triangles = tmp->GetTriangles();
 createFacets(triangles); 
   
 }
-
+*/
 /*
 *This method tryes to fix non-simple polygons, but in very basic way
 *Its designed to remove falsely made intersecting edges due to floating points calcuation errors
@@ -1565,7 +1547,7 @@ bool Mesh::createBorderPolylines(bool firstCall)//bool processOnFac)
 
   if(firstCall == true && processOnFacets() == true)
     if(processOnBorder() == true)
-      return false; // this means everything worked well, but we dont want to triangulate again, cause processonBorder already did that
+      return false; // this means everything worked well, but we dont want to triangulate again, cause processOnBorder already did that
 
   if(border.size() == 0 )
   {
@@ -1815,23 +1797,7 @@ void Mesh::pushOns(const int ons,stl_vertex& a,stl_vertex& b,const stl_facet &fa
 }
 
 
-Mesh::Mesh()
-{
-  //Mesh::numOfSegf = 0;
-  //Mesh::buf; //= NULL;
-  //Mesh::signal_set;// = NULL;
-}
-/*
-void Mesh::initSegfHandler()
-{
-  //numOfSegf = 0;
-  setjmp(buf);
-  sigemptyset(&signal_set);
-  sigaddset(&signal_set, SIGSEGV); 
-  sigprocmask(SIG_UNBLOCK, &signal_set, NULL); //clearnig segfault signal
-  signal(SIGSEGV, segv_handler);
 
-}*/
 
 void Mesh::cleanupVariables()
 {
@@ -2024,7 +1990,7 @@ void Mesh::openStl(char * name)
   //stl_exit_on_error(&mesh_file);
 }
 
-stl_file* Mesh::exportStl2(deque<stl_facet> facets) 
+stl_file* Mesh::getExportedStl(deque<stl_facet> facets) 
 {
   stl_file* stl_out = new stl_file;
   initializeStl(stl_out,facets.size());
@@ -2076,7 +2042,7 @@ void Mesh::save(string name)
 */
 std::array<stl_file*,2> Mesh::getFinalStls()
 {
-  return{exportStl2(top_facets),exportStl2(bot_facets)};//"pokus1.stl");
+  return{getExportedStl(top_facets),getExportedStl(bot_facets)};//"pokus1.stl");
 
 }
 
@@ -3274,6 +3240,36 @@ bool Mesh::t_setRemovedAxis()
 //return succes;
 }
 
+bool Mesh::t_isStringValid()
+{
+  fails.clear();
+  int num=1;
+  cout<<"Testing isStringValid"<<endl;
+  string s;
+
+  s = "abcASDH124526_ 912830asdA";
+  if(!(isStringValid(s)))
+    fails.push_back(num);
+  num++;
+
+  s = "abcASDH124526_ 91@##$#@(*)&2830asdA";
+  if(isStringValid(s))
+    fails.push_back(num);
+  num++;
+
+  s = "abcASDH12  //asd4526_ 912830asdA";
+  if(isStringValid(s))
+    fails.push_back(num);
+  num++;
+
+if(fails.size()>0)
+  {
+    writeFails();
+    return false;
+  }
+  else return true;
+}
+
 
 bool Mesh::t_minMaxPointsSame()
 {
@@ -3328,6 +3324,8 @@ bool Mesh::runUnitTests()
   if( !(t_removeNonsimplePolygonPoints()) ) 
     success = false;
   if( !(t_setVertex()) ) 
+    success = false;
+  if( !(t_isStringValid()) ) 
     success = false;
   
   
