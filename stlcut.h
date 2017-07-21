@@ -28,11 +28,13 @@ struct stl_plane
 };
 
 
-struct setVertComp 
+struct comparatorStruct 
  {
   bool operator() (const stl_vertex& lhs, const stl_vertex& rhs) const;
   bool operator() (const p2t::Point* lhs, const p2t::Point* rhs) const;
   bool operator() (const p2t::Point lhs, const p2t::Point rhs) const;
+  bool operator()(const stl_facet & a, const stl_facet & b) const;
+
  };
 
 class Mesh
@@ -41,13 +43,13 @@ public:
 
   bool cut(stl_plane plane);
   void openStl(char* name);
-  void setStl( stl_file file);
+  void setStl( stl_file file); //test
   void exportStl(deque<stl_facet> facets, const char* name);
   void save(string name = "");
   std::array<stl_file*,2> getFinalStls(); //save2
   void close();
   std::array<string,2> stlCut(stl_file* stlMesh,double a, double b, double c, double d,bool & succes);
-  void setOptions(bool silent, bool error_recovery);
+  void setOptions(bool silent, bool error_recovery); //test
   bool runUnitTests();
   
 private:
@@ -80,17 +82,17 @@ private:
   //void checkPoly2triResult();
   void checkPoly2triResult( vector<p2t::Triangle*>& triangles ); //test
   void initializeStl(stl_file * stl,int numOfFacets); //priprazeni
-  void setVertex(stl_vertex& a, stl_vertex& b,const int &s,const stl_facet & facet); //test
+  void setVertexFromFacet(stl_vertex& a, stl_vertex& b,const int &s,const stl_facet & facet); //test
   bool processOnFacets();
   bool processOnBorder();
-  bool haveEqualEdges(tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet1, tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet2);
-  void insertTo(stl_vertex x, stl_vertex y, vector<stl_vertex>& a, set<stl_vertex,setVertComp> & b);
+  bool haveEqualEdges(tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet1, tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet2); //test
+  void insertTo(stl_vertex x, stl_vertex y, vector<stl_vertex>& a, set<stl_vertex,comparatorStruct> & b);
   void sortPolylines(); //test
   bool isStringValid(const string &str); //true
   //void pushToBuffer(vector<p2t::Point*>& polyline);
   void pushOns(const int ons, stl_vertex& a, stl_vertex& b,const stl_facet &facet, const stl_position* pos);
   void pushAboveBelow(const int aboves,stl_vertex& a,stl_vertex& b,const stl_facet &facet, const stl_position* pos);
-  void popTo(stl_vertex& a, stl_vertex& b);
+  void popTo(stl_vertex& a, stl_vertex& b); //test
   //void poly2triTest();
   void writeFails();
   void cleanupVariables();
@@ -114,17 +116,23 @@ private:
   bool t_ccw();
   bool t_edgesIntersect ();
   bool t_removeNonsimplePolygonPoints();
-  bool t_setVertex();
+  bool t_setVertexFromFacet();
   bool t_isStringValid();
+  bool t_setOptions();
+  bool t_haveEqualEdges();
+  bool t_popTo();
 
   // Integration tests
-  bool t_minMaxPointsSame();
+  bool t_minMaxPointsSameAfterCut();
+  bool t_sameVolume();
+  bool t_allTrianglesOriginalOrPartOfCut();
+  bool t_noVertexOnOpositeSide();
 
-  stl_file mesh_file;
+  stl_file meshFile;
   stl_plane plane=stl_plane(0,0,0,0);
   deque<stl_facet>top_facets,bot_facets;
   vector<stl_vertex>border,botBorder,topBorder;
-  set<stl_vertex,setVertComp> originalVertices; //border as set, used to calculate missing coordinate during 2d->3d conversion
+  set<stl_vertex,comparatorStruct> originalVertices; //border as set, used to calculate missing coordinate during 2d->3d conversion
   //deque<stl_vertex>remainingBorder;
   vector<vector <p2t::Point*> > polylines;
   vector< vector< pair <vector<p2t::Point*>,int> > > polygonsWithHoles;
