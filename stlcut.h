@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <admesh/stl.h>
 #include "poly2tri/poly2tri.h"
-//#include <poly2tri/poly2tri.h> tohle tam ma byt kdyz pouzivam -lpoly2tri, pridat do instalacniho scriptu pripadne prepsani
 #include <string>
 #include <limits>
 #include <tuple>
