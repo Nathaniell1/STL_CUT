@@ -5,3 +5,4 @@ else
   flags='-lpoly2tri'
 fi
 g++ -g -std=c++11 -o stlcut prgstlcut.cpp stlcut.cpp $flags -ladmesh
+g++ -g -std=c++11 -o cuttests tests.cpp stlcut.cpp $flags -ladmesh

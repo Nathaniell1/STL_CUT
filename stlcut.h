@@ -44,15 +44,16 @@ public:
   bool cut(stl_plane plane);
   void openStl(char* name);
   void setStl( stl_file file); //test
-  void exportStl(deque<stl_facet> facets, const char* name);
   void save(string name = "");
-  std::array<stl_file*,2> getFinalStls(); //save2
+  std::array<stl_file*,2> getFinalStls(); 
   void close();
   std::array<string,2> stlCut(stl_file* stlMesh,double a, double b, double c, double d,bool & succes);
   void setOptions(bool silent, bool error_recovery); //test
   bool runUnitTests();
+  bool runIntegrationTests();
   
 private:
+  void exportStl(deque<stl_facet> facets, const char* name);
   stl_file* getExportedStl(deque<stl_facet> facets);
   bool createBorderPolylines(bool firstCall = true); 
   void findHoles();
@@ -130,7 +131,7 @@ private:
 
   stl_file meshFile;
   stl_plane plane=stl_plane(0,0,0,0);
-  deque<stl_facet>top_facets,bot_facets;
+  deque<stl_facet>topFacets,botFacets;
   vector<stl_vertex>border,botBorder,topBorder;
   set<stl_vertex,comparatorStruct> originalVertices; //border as set, used to calculate missing coordinate during 2d->3d conversion
   //deque<stl_vertex>remainingBorder;
