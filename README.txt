@@ -1,6 +1,6 @@
 StlCut uses plane to cut stl file and generates two new stl files.
 The hole made with cut is triangulated.
-Use with 2--manifold models.
+Use with 2--manifold triangular models.
 Plane is defined as normal (a,b,c) and distance from origin (d).
 If you have problem with cut, try slightly changing a distance.
 
@@ -13,11 +13,11 @@ To install stlcut you can chose between:
 1.
 
 Compile stlcut with ./build and use it with ./stlcut file.stl
-If your distribution does not provide poly2tri installation, download from github.com/greenm01/poly2tri/tree/master/poly2tri and place the folder with it to the folder with stlcut and name it poly2tri.
+If your distribution does not provide poly2tri installation, download it from github.com/greenm01/poly2tri/tree/master/poly2tri and place the folder with it to the folder with stlcut and name it poly2tri.
 then use LOCAL=1 ./build
 
 Now you can use ./stlcut file.stl a b c d
-For aditional info use ./stlcut help
+For aditional info use ./stlcut --help
 
 2.
 
@@ -29,7 +29,8 @@ On Linux, you would use:
 
     premake4 gmake
     make
-If you encounter problem erro while loading shared libraries use
+
+If you encounter error while loading shared libraries use:
 export LD_LIBRARY_PATH=.
 
 To install stlcut, put the compiled binary and the shared library into your `$PATH`:
@@ -47,18 +48,28 @@ Running the command line tool:
 
     stlcut file.stl a b c d 
     For aditional info use
-    stlcut help
+    stlcut --help
 
 -------------------------------
-As a result, you'll get `Cut_Mesh_1.stl`, `Cut_Mesh_2.stl` if the cut is succesful.
 
-To use test script you have to have Python and pytest.
-Run it with pytest -v test_stlcut.py
-Test script uses stl files from stl_files folder.
-You should encounter problems with kolo.stl and trubka.stl as they are non-manifold meshes.
+You can test if everything is working properly with:
+./cuttests ./stl_files/*.stl
+For aditional info use
+./cuttests --help
 
-------------------------
+------------------------------
+
+How to use stlcut library in your program:
+
+include stlcut.h
+Create new instance of Mesh class.
+Use openStl(char * name) or setStl(stl_file f) to set your mesh.
+(Optional) setOptions(bool silent, bool errorRecovery) First argument, if true, will disable text output. Second argument, if false, will disable recovery from errors during cut.
+Use cut(stl_plane plane) To cut through your object. Takes stl_plane which defines cutting plane.
+If cut() returns true, use save(string name) to save new meshes or getFinalStls() to get pointer to them.
+
+
+Line 108-115 in prgstlcut.cpp can serve as an example.
+
 
 If you want to use ADMeshGUI you have to use installation number 2.
-If you cant for some reason, download stlcut and change file meshobject.cpp
-Change line #include <stlcut> to #include <stlcut.h> 
