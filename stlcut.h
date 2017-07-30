@@ -69,7 +69,7 @@ private:
   stl_vertex getMissingCoordinate(const p2t::Point* a); //test
   void pushBackToPolylines(vector<p2t::Point*> &vec,stl_vertex vert); //test
   void pushFrontToPolylines(vector<p2t::Point*> &vec,stl_vertex vert); //test
-  void volumeTest();
+  //void volumeTest();
   //void fixNonsimplePolygon(vector<p2t::Point*>& npolygon);
   //bool checkForNewPoints(vector<p2t::Triangle*> &triangles, vector<p2t::Point*>& npolygon);
   void repairIfNonsimplePolygon(); // akorad vola removenonsimple v cyklu

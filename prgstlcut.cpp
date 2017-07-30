@@ -21,7 +21,7 @@ void acquireSaveName(string& name, bool silent)
         [](char c) { return !(isalnum(c) || (c == ' ') || (c == '_' )); }) == name.end() ) )
     {
       if(!silent)cout<<"Plese use only alphanumeric characters, space and underscore"<<endl;
-      name="";
+      name = "";
       continue;
     }
     else
@@ -32,13 +32,13 @@ void acquireSaveName(string& name, bool silent)
 void printHelp(const char * name)
 {
   cout << "StlCut is program for cuting STL meshes using plane. If succesful, two new STL files will be created."<<endl<<endl;
-  cout << "\e[1m-Usage:\e[0m- " << name << " file.stl a b c d (optional) -- if not provided 0 0 1 1 will be used. " << endl<<endl;
+  cout << "\e[1m-Usage:\e[0m- " << name << " file.stl a b c d (optional) -- if not provided 0 0 1 0 will be used. " << endl<<endl;
   cout << "Plane is in a form of a plane normal vector (a, b, c) and d = distance from origin."<<endl;
   cout << "Cutting through non-manifold object might result in error or wrong triangulation of cut area."<<endl<<endl;
   cout << "Options:"<<endl;
   cout << "\e[1m--help (-h)\e[0m " << "Displays this help."<<endl<<endl;
   cout << "\e[1m--silent (-s)\e[0m "<< "StlCut won't write anything to command line. Beware, that it won't ask you for new name of meshes, but will still require it."<<endl<<endl;
-  cout << "\e[1m--error-recovery=<true/false> (-e)\e[0m "<< "If this option is false, StlCut will not try to recover from possible errors (recovery leads to meshes cut with slightly changed plane position). Short version -e sets this option to false. Error-recovery is true in default."<<endl;
+  cout << "\e[1m--error-recovery=<true/false> (-e)\e[0m "<< "If this option is false, StlCut will not try to recover from possible errors (recovery leads to meshes cut with slightly changed plane position). Short version -e sets this option to false. Error-recovery is set true in default."<<endl;
 }
 
 
@@ -52,7 +52,7 @@ void printHelp(const char * name)
 int main(int argc, char ** argv)
 {
   string name = "";
-  stl_plane plane = stl_plane(0, 0, 1, 1);
+  stl_plane plane = stl_plane(0, 0, 1, 0);
   int op;
   struct options Option = { false, false, true };
   const struct option longopts[] = 
@@ -63,7 +63,7 @@ int main(int argc, char ** argv)
     { NULL,         no_argument,       NULL,  0  }
   };
 
-  if (argc >= 6 && argv[argc-1] != string("tests"))
+  if (argc >= 6 )
   {
       plane = stl_plane(atof( argv[argc-4]), atof(argv[argc-3]), atof(argv[argc-2]), atof(argv[argc-1]));
       argc -=4;

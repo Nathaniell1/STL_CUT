@@ -318,7 +318,8 @@ bool Mesh::vertexInPolygon( const vector<Point* >& polygon,  const double &testx
   int i, j;
   bool in = false;
   //vector from point to the right(to infinity) vs edges
-  for (i = 0, j = polygon.size()-1; i < polygon.size(); j = i++) {
+  for (i = 0, j = polygon.size()-1; i < polygon.size(); j = i++) 
+  {
     if ( ((polygon.at(i)->y > testy) != (polygon.at(j)->y > testy)) &&
      (testx < (polygon.at(j)->x - polygon.at(i)->x) * (testy - polygon.at(i)->y) / (polygon.at(j)->y - polygon.at(i)->y) + polygon.at(i)->x) )
     {
@@ -920,7 +921,7 @@ bool Mesh::processOnBorder()
   if (!(topFacets.size()!=0 && botFacets.size() != 0 ))
     return false;
   vector<stl_vertex> borderBackUp = border;
-  border.insert(border.end(),botBorder.begin(),botBorder.end());
+  border.insert(border.end(), botBorder.begin(), botBorder.end());
   if(createBorderPolylines(false))
   {
     findHoles();
@@ -928,7 +929,7 @@ bool Mesh::processOnBorder()
   }
 
   border = borderBackUp;
-  border.insert(border.end(),topBorder.begin(),topBorder.end());
+  border.insert(border.end(), topBorder.begin(), topBorder.end());
   if(createBorderPolylines(false))
   {
     findHoles();
@@ -1116,7 +1117,7 @@ bool Mesh::cut(stl_plane plane)
       if(!silent) cerr<<endl<<"Recovered from segmentation fault."<<endl;
     }
 
-    cleanupVariables(); // with this its possible to use cut multiple times in row
+    cleanupVariables(); // makes using cut multiple times in row possible
     setPlane(plane);
     divideFacets();
     if(createBorderPolylines())
