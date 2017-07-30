@@ -65,11 +65,15 @@ include stlcut.h
 Create new instance of Mesh class.
 Use openStl(char * name) or setStl(stl_file f) to set your mesh.
 (Optional) setOptions(bool silent, bool errorRecovery) First argument, if true, will disable text output. Second argument, if false, will disable recovery from errors during cut.
-Use cut(stl_plane plane) To cut through your object. Takes stl_plane which defines cutting plane.
-If cut() returns true, use save(string name) to save new meshes or getFinalStls() to get pointer to them.
+Use cut(stl_plane plane) To cut through your object. Takes stl_plane which defines cutting plane as parameter.
+If cut() returns true, use save(string name) to save new meshes or getFinalStls() to get pointer to their stl_files.
 
+Example:
 
-Line 108-115 in prgstlcut.cpp can serve as an example.
+  Mesh mesh;
+  mesh.openStl("bunny.stl");
+  if (mesh.cut(stl_plane(0,0,1,0)))
+      mesh.save("half_of_bunny");   
 
 
 If you want to use ADMeshGUI you have to use installation number 2.
