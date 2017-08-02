@@ -313,7 +313,7 @@ bool Mesh::edgesIntersect (p2t::Point* a, p2t::Point* b, p2t::Point* c, p2t::Poi
 * Tests if given vertex is inside given polygon .
 * Used to find holes in polygons.
 */
-bool Mesh::vertexInPolygon( const vector<Point* >& polygon,  const double &testx, const double testy)
+bool Mesh::vertexInPolygon( const vector<Point* >& polygon,  const double &testx, const double &testy)
 {
   int i, j;
   bool in = false;
@@ -1091,11 +1091,14 @@ void Mesh::setOptions(bool sil, bool err)
 }
 
 /*
-* Makes cut through stl_file. Returns true if succesfull otherwise false.
+* Makes cut through stl_file. Throws exception if input file wasnt provided before calling this method. Returns true if succesfull otherwise false.
 *@param [in] plane The stl_plane used to cut the mesh.
 */
 bool Mesh::cut(stl_plane plane)
 {
+  if(stl_get_error(&meshFile) != 0)
+    throw std::runtime_error("Mesh to cut wasn't provided.");
+
   double error_correction = 0.00015;
   numOfSegv = 0;
   if(errorRecovery != false)

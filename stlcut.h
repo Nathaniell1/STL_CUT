@@ -62,7 +62,7 @@ private:
   void triangulateCut(int topOrBot=0);
   void checkDuplicity(); //test
   double calculatePolygonArea(vector<p2t::Point*> polygon); //test
-  bool vertexInPolygon(const vector<Point* >& polygon,  const double &testx, const double testy); //test
+  bool vertexInPolygon(const vector<Point* >& polygon,  const double &testx, const double &testy); //test
   void createFacets(vector<p2t::Triangle*> &triangles, int side = 0);
   stl_facet createFacet(stl_facet facet, int s, int i, stl_vertex intersect); //test
   stl_facet createFacet(stl_facet facet, int s, int i, stl_vertex intersect1, stl_vertex intersect2); //test
