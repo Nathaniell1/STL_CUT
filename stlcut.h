@@ -6,7 +6,7 @@
 #include <map>
 #include <algorithm>
 #include <admesh/stl.h>
-#include <poly2tri/poly2tri.h>
+#include "poly2tri/poly2tri.h"
 #include <string>
 #include <limits>
 #include <tuple>
@@ -135,12 +135,6 @@ private:
   bool errorRecovery = true;
   
 };
-
-
-// vertex position related to the plane
-
-
- std::array<stl_file*,2> stlCut(stl_file* stlMesh,double a, double b, double c, double d,bool & succes);
 
 
 

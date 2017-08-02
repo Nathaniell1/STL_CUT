@@ -1358,23 +1358,6 @@ void Mesh::exportStl(deque<stl_facet> facets, const char* name)
   stl_close(&stl_out);
 }
 
-//used by ADMeshGUI
-std::array<stl_file*,2> stlCut(stl_file* stlMesh,double a, double b, double c, double d,bool & success)
-{
-  std::array<stl_file*,2> cutMesh; 
-	stl_plane plane = stl_plane(a,b,c,d);
-	Mesh mesh;
-  mesh.setStl(*stlMesh);
-  if(mesh.cut(plane))
-  {
-    cutMesh = mesh.getFinalStls();
-    success = true;
-  }
-  else
-    success = false;
-  
-  return{cutMesh[0],cutMesh[1]};
-}
 /*
 * Return stl_vertex from x,y,z input.
 */
