@@ -42,12 +42,12 @@ public:
 
   bool cut(stl_plane plane);
   void openStl(char* name);
-  void setStl( stl_file file); //test
+  void setStl( stl_file file); 
   void save(string name = "");
   std::array<stl_file*,2> getFinalStls(); 
   void close();
   std::array<string,2> stlCut(stl_file* stlMesh,double a, double b, double c, double d,bool & succes);
-  void setOptions(bool silent, bool error_recovery); //test
+  void setOptions(bool silent, bool error_recovery); 
   bool runUnitTests();
   bool runIntegrationTests();
   
@@ -56,49 +56,41 @@ private:
   stl_file* getExportedStl(deque<stl_facet> facets);
   bool createBorderPolylines(bool firstCall = true); 
   void findHoles();
-  stl_position vertexPosition(stl_vertex vertex); //test
-  stl_vertex intersection(stl_vertex a, stl_vertex b); //test
+  stl_position vertexPosition(stl_vertex vertex); 
+  stl_vertex intersection(stl_vertex a, stl_vertex b); 
   void divideFacets();
   void triangulateCut(int topOrBot=0);
-  void checkDuplicity(); //test
-  double calculatePolygonArea(vector<p2t::Point*> polygon); //test
-  bool vertexInPolygon(const vector<Point* >& polygon,  const double &testx, const double &testy); //test
+  void checkDuplicity(); 
+  double calculatePolygonArea(vector<p2t::Point*> polygon); 
+  bool vertexInPolygon(const vector<Point* >& polygon,  const double &testx, const double &testy); 
   void createFacets(vector<p2t::Triangle*> &triangles, int side = 0);
-  stl_facet createFacet(stl_facet facet, int s, int i, stl_vertex intersect); //test
-  stl_facet createFacet(stl_facet facet, int s, int i, stl_vertex intersect1, stl_vertex intersect2); //test
-  stl_vertex getMissingCoordinate(const p2t::Point* a); //test
-  void pushBackToPolylines(vector<p2t::Point*> &vec,stl_vertex vert); //test
-  void pushFrontToPolylines(vector<p2t::Point*> &vec,stl_vertex vert); //test
-  //void volumeTest();
-  //void fixNonsimplePolygon(vector<p2t::Point*>& npolygon);
-  //bool checkForNewPoints(vector<p2t::Triangle*> &triangles, vector<p2t::Point*>& npolygon);
-  void repairIfNonsimplePolygon(); // akorad vola removenonsimple v cyklu
-  void setRemovedAxis(); //test
-  void setPlane(stl_plane plane); // jen prirazeni
-  bool ccw(p2t::Point* a, p2t::Point* b, p2t::Point* c); //test
-  bool edgesIntersect (p2t::Point* a, p2t::Point* b, p2t::Point* c, p2t::Point* d); // test
-  void removeNonsimplePolygonPoints(vector<p2t::Point*> & p); //test
-  //bool acquireSaveName(string& name);
-  //void checkPoly2triResult();
-  void checkPoly2triResult( vector<p2t::Triangle*>& triangles ); //test
-  void initializeStl(stl_file * stl,int numOfFacets); //priprazeni
-  void setVertexFromFacet(stl_vertex& a, stl_vertex& b,const int &s,const stl_facet & facet); //test
+  stl_facet createFacet(stl_facet facet, int s, int i, stl_vertex intersect); 
+  stl_facet createFacet(stl_facet facet, int s, int i, stl_vertex intersect1, stl_vertex intersect2); 
+  stl_vertex getMissingCoordinate(const p2t::Point* a); 
+  void pushBackToPolylines(vector<p2t::Point*> &vec,stl_vertex vert); 
+  void pushFrontToPolylines(vector<p2t::Point*> &vec,stl_vertex vert); 
+  void repairIfNonsimplePolygon(); 
+  void setRemovedAxis(); 
+  void setPlane(stl_plane plane); 
+  bool ccw(p2t::Point* a, p2t::Point* b, p2t::Point* c); 
+  bool edgesIntersect (p2t::Point* a, p2t::Point* b, p2t::Point* c, p2t::Point* d); 
+  void removeNonsimplePolygonPoints(vector<p2t::Point*> & p); 
+  void checkPoly2triResult( vector<p2t::Triangle*>& triangles ); 
+  void initializeStl(stl_file * stl,int numOfFacets); 
+  void setVertexFromFacet(stl_vertex& a, stl_vertex& b,const int &s,const stl_facet & facet); 
   bool processOnFacets();
   bool processOnBorder();
-  bool haveEqualEdges(tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet1, tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet2); //test
+  bool haveEqualEdges(tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet1, tuple<stl_facet,stl_position,stl_vertex,stl_vertex>& facet2); 
   void insertTo(stl_vertex x, stl_vertex y, vector<stl_vertex>& a, set<stl_vertex,comparatorStruct> & b);
-  void sortPolylines(); //test
-  bool isStringValid(const string &str); //true
-  //void pushToBuffer(vector<p2t::Point*>& polyline);
+  void sortPolylines(); 
+  bool isStringValid(const string &str); 
   void pushOns(const int ons, stl_vertex& a, stl_vertex& b,const stl_facet &facet, const stl_position* pos);
   void pushAboveBelow(const int aboves,stl_vertex& a,stl_vertex& b,const stl_facet &facet, const stl_position* pos);
-  void popTo(stl_vertex& a, stl_vertex& b); //test
-  //void poly2triTest();
+  void popTo(stl_vertex& a, stl_vertex& b); 
   void writeFails();
   void cleanupVariables();
   void deletePolygonsWithHoles();
   stl_vertex getVertex(double x, double y, double z);
-  //void initSegfHandler();
 
   //Unit test methods
   bool t_setRemovedAxis();
@@ -133,7 +125,6 @@ private:
   deque<stl_facet>topFacets,botFacets;
   vector<stl_vertex>border,botBorder,topBorder;
   set<stl_vertex,comparatorStruct> originalVertices; //border as set, used to calculate missing coordinate during 2d->3d conversion
-  //deque<stl_vertex>remainingBorder;
   vector<vector <p2t::Point*> > polylines;
   vector< vector< pair <vector<p2t::Point*>,int> > > polygonsWithHoles;
   vector<tuple<stl_facet,stl_position,stl_vertex,stl_vertex>> facetsOnPlane;
@@ -142,8 +133,6 @@ private:
   vector<int> fails;
   bool silent = false;
   bool errorRecovery = true;
-
-  //float zCoord;
   
 };
 
