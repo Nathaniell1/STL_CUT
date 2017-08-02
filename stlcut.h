@@ -6,7 +6,7 @@
 #include <map>
 #include <algorithm>
 #include <admesh/stl.h>
-#include "poly2tri/poly2tri.h"
+#include <poly2tri/poly2tri.h>
 #include <string>
 #include <limits>
 #include <tuple>
