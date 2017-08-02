@@ -38,3 +38,11 @@ solution "stlcut"
 		files { "prgstlcut.cpp" }
 		targetname ("stlcut")
 		links { "lib", "admesh", "poly2tri" }
+
+	project "cuttests"
+		kind "ConsoleApp"
+		language "C++"
+		linkoptions { "-Lbuild" }
+		files { "tests.cpp" }
+		targetname ("cuttests")
+		links { "lib", "admesh", "poly2tri" }

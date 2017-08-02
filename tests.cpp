@@ -79,17 +79,6 @@ bool Mesh::t_intersection()
     fails.push_back(num);
   num++;
 
-  setPlane(stl_plane(1, 1, 0.5, -5));
-  setRemovedAxis();
-
-  vert = intersection(getVertex(6, 0, 0), getVertex(-1, 0, 5));
-  if(!(vert == getVertex(-15, 0, 15))) 
-    fails.push_back(num);
-  num++;
-  vert = intersection(getVertex(7, 7, 7), getVertex(-7, -7, -7));
-  if(!(vert == getVertex(-3, -3, -3)))
-    fails.push_back(num);
-  num++;
 
   if(fails.size()>0)
   {
@@ -1546,7 +1535,7 @@ int main(int argc, char ** argv)
   planes.push_back(stl_plane(0, 1 ,0 ,-1));
   planes.push_back(stl_plane(0, 0 ,1 ,-1));
   planes.push_back(stl_plane(1, 1 ,0 ,0));
-  planes.push_back(stl_plane(1, 0 ,1 ,0));
+  planes.push_back(stl_plane(1, 0 ,0.5 ,0));
   planes.push_back(stl_plane(0, 1 ,1 ,0));
 
   bool unitTestResult = mesh.runUnitTests();
